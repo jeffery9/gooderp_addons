@@ -189,11 +189,12 @@ class Staff(models.Model):
 class BankAccount(models.Model):
     _name = 'bank.account'
     _description = u'账户'
+    _inherit = ['mail.thread']
 
     name = fields.Char(u'名称', required=True)
     num = fields.Char(u'账号')
     balance = fields.Float(u'余额', readonly=True,
-                           digits=dp.get_precision('Amount'))
+                           digits=dp.get_precision('Amount'), track_visibility='onchange')
     active = fields.Boolean(u'启用', default=True)
     company_id = fields.Many2one(
         'res.company',

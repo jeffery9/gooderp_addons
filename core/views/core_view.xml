@@ -404,6 +404,26 @@
 				</tree>
 			</field>
 		</record>
+        <record id="bank_account_form" model="ir.ui.view">
+            <field name="name">bank.account.form</field>
+            <field name="model">bank.account</field>
+            <field name="arch" type="xml">
+                <form string="账户" delete="false" create="false" edit="false">
+                    <sheet>
+                        <group>
+                            <field name="name" />
+                            <field name="num" />
+                            <field name="balance" />
+                            <field name='active' invisible='0' />
+                        </group>
+                    </sheet>
+                    <div class="oe_chatter">
+                        <field name="message_follower_ids" widget="mail_followers" />
+                        <field name="message_ids" widget="mail_thread" />
+                    </div>
+                </form>
+            </field>
+        </record>
 		<record id="bank_account_search" model="ir.ui.view">
             <field name="name">bank.account.search</field>
             <field name="model">bank.account</field>

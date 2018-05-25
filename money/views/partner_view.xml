@@ -19,6 +19,23 @@
 				</field>
             </field>
         </record>
+        <record id="bank_account_form_inherit_first" model="ir.ui.view">
+            <field name="name">bank.account.from.inherit</field>
+            <field name="model">bank.account</field>
+            <field name='inherit_id' ref='core.bank_account_form' />
+            <field name="arch" type="xml">
+                <field name="balance" position="before">
+                    <field name="account_id" options="{'no_open': True, 'no_create': True}"/>
+                    <field name="init_balance"/>
+                </field>
+                <field name="balance" position="after">
+                    <field name="currency_id"
+                         groups='finance.group_multi_currency' invisible="1"/>
+                    <field name="currency_id_new" readonly="1"/>
+                    <!-- <button name="bank_statements" type="object" string="查看现金银行报表" icon="fa-search" class="oe_highlight" groups="base.group_no_one"/> -->
+                </field>
+            </field>
+        </record>
         <!-- 增加期初字段 -->
         <record id="customer_address_form" model="ir.ui.view">
             <field name="model">partner</field>
