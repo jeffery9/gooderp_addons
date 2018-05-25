@@ -7,7 +7,7 @@
         </record>
         <record id="app_odoo_customize.report_url" model="ir.config_parameter">
             <field name="key">report.url</field>
-            <field name="value">http://ras.ccb.com:8069</field>
+            <field name="value">http://127.0.0.1:8069</field>
         </record>
         <record id="app_odoo_customize.app_show_lang" model="ir.config_parameter">
             <field name="key">app_show_lang</field>
