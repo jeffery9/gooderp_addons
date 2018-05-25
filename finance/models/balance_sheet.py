@@ -79,7 +79,7 @@ class CreateBalanceSheetWizard(models.TransientModel):
         """
         return self.env['finance.period'].get_date_now_period_id()
 
-    period_id = fields.Many2one('finance.period', string=u'会计期间', 
+    period_id = fields.Many2one('finance.period', string=u'会计期间',
                                 default=_default_period_id, help=u'用来设定报表的期间')
 
     @api.multi
@@ -111,24 +111,45 @@ class CreateBalanceSheetWizard(models.TransientModel):
         else:
             return 0
 
-    def deal_with_balance_formula(self, balance_formula, period_id, year_begain_field):
+    def deal_with_balance_formula(self, balance_formula, period_id, year_begain_field,assets):
         if balance_formula:
             return_vals = sum([self.compute_balance(one_formula, period_id, year_begain_field)
                                for one_formula in balance_formula.split(';')])
+            for one_formula in balance_formula.split(';'):
+                if one_formula:
+                    parameter_str_list = one_formula.split('~')
+                    subject_vals = []
+                    if len(parameter_str_list) == 1:
+                        account_ids = self.env['finance.account'].search(
+                            [('code', '=', parameter_str_list[0]), ('account_type', '!=', 'view')])
+                    else:
+                        account_ids = self.env['finance.account'].search(
+                            [('code', '>=', parameter_str_list[0]), ('code', '<=', parameter_str_list[1]),
+                             ('account_type', '!=', 'view')])
+            balance_directions = []
+
+            for account_id in account_ids:
+                balance_directions.append(account_id.balance_directions)
+            if assets == 'assets' and list(set(balance_directions)) == [u'out']:
+                return (-return_vals)
+            if assets == 'debt' and list(set(balance_directions)) == [u'in']:
+                return (-return_vals)
+
         else:
             return_vals = 0
+
         return return_vals
 
     def balance_sheet_create(self, balance_sheet_obj, year_begain_field, current_period_field):
         balance_sheet_obj.write(
             {'beginning_balance': self.deal_with_balance_formula(balance_sheet_obj.balance_formula,
-                                                                      self.period_id, year_begain_field),
+                                                                      self.period_id, year_begain_field,'assets'),
              'ending_balance': self.deal_with_balance_formula(balance_sheet_obj.balance_formula,
-                                                                   self.period_id, current_period_field),
+                                                                   self.period_id, current_period_field,'assets'),
              'beginning_balance_two': self.deal_with_balance_formula(balance_sheet_obj.balance_two_formula,
-                                                                     self.period_id, year_begain_field),
+                                                                     self.period_id, year_begain_field,'debt'),
              'ending_balance_two': self.deal_with_balance_formula(balance_sheet_obj.balance_two_formula,
-                                                                  self.period_id, current_period_field)})
+                                                                  self.period_id, current_period_field,'debt')})
 
     @api.multi
     def create_balance_sheet(self):
@@ -349,7 +370,7 @@ class CreateBalanceSheetWizard(models.TransientModel):
 
                 if 'current' not in compute_field_list[1]:
                     total_sum += sum(begin_balances.mapped('cumulative_occurrence_debit'))
-                    
+
             return total_sum
 
     @api.multi
