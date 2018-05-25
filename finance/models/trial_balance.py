@@ -647,7 +647,7 @@ class CreateVouchersSummaryWizard(models.TransientModel):
     no_occurred = fields.Boolean(
         u'有发生额', default=True, help=u'无发生额的科目不显示明细账，默认为不显示')
     no_balance = fields.Boolean(
-        u'有余额', default=True, help=u'无余额的科目不显示明细账，默认为不显示')
+        u'有金额', default=True, help=u'无余额的科目不显示明细账，默认为不显示')
     company_id = fields.Many2one(
         'res.company',
         string=u'公司',
