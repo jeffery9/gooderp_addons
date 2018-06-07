@@ -152,6 +152,9 @@ class OtherMoneyOrder(models.Model):
     def other_money_done(self):
         '''其他收支单的审核按钮'''
         self.ensure_one()
+        #如果此单据状态为DONE了，就不要再执行了
+        if self.state == 'done':
+            return True
         if float_compare(self.total_amount, 0, 3) <= 0:
             raise UserError(u'金额应该大于0。\n金额:%s' % self.total_amount)
         if not self.bank_id.account_id:
