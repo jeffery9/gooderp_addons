@@ -24,12 +24,12 @@
                 <tree string="业务活动表" create='false' edit='false' duplicate="false" delete="false">
                     <field name="balance" />
                     <field name="line_num" />
-                    <field name="current_unrestricted" base_string='本期数' merge="False" child_name='非限定性' colspan='3' widget="bgcolor" color="success"/>
-                    <field name="current_restricted" merge="True" child_name='限定性' widget="bgcolor" color="primary"/>
-                    <field name="current_total" merge="True" child_name='合计' widget="bgcolor" color="primary" />
-                    <field name="cumulative_unrestricted" base_string='本年累计数' merge="False" child_name='非限定性' colspan='3' widget="bgcolor" color="success"/>
-                    <field name="cumulative_restricted" merge="True" child_name='限定性' widget="bgcolor" color="primary"/>
-                    <field name="cumulative_total" merge="True" child_name='合计' widget="bgcolor" color="success"/>
+                    <field name="current_unrestricted" base_string='本期数' merge="False" child_name='非限定性' colspan='3' color="success" />
+                    <field name="current_restricted" merge="True" child_name='限定性' color="primary" />
+                    <field name="current_total" merge="True" child_name='合计' color="primary" />
+                    <field name="cumulative_unrestricted" base_string='本年累计数' merge="False" child_name='非限定性' colspan='3' color="success" />
+                    <field name="cumulative_restricted" merge="True" child_name='限定性' color="primary" />
+                    <field name="cumulative_total" merge="True" child_name='合计' color="success" />
                 </tree>
             </field>
         </record>

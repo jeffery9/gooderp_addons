@@ -27,8 +27,8 @@
                     <filter name="get" string="收入" domain="[('type','in',['get','other_get'])]"/>
                     <filter name="pay" string="支出" domain="[('type','in',['pay','other_pay'])]"/>
                     <separator/>
-                    <filter name="group_date" string="日期" domain="[]" context="{'group_by':'date'}"/>
-                    <filter name="group_partner" string="往来单位" domain="[]" context="{'group_by':'partner_id'}"/>
+                    <!--<filter name="group_date" string="日期" domain="[]" context="{'group_by':'date'}"/>-->
+                    <!--<filter name="group_partner" string="往来单位" domain="[]" context="{'group_by':'partner_id'}"/>-->
                     <filter name="group_category_id" string="收支类别" domain="[]" context="{'group_by':'category_id'}"/>
                 </search>
             </field>

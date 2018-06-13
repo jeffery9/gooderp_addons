@@ -7,18 +7,18 @@
             <field name="model">trial.balance</field>
             <field name="arch" type="xml">
                 <tree string="科目余额表" decoration-info="account_type == 'view'" editable="TOP" default_order='subject_name_id'>
-                    <field name="period_id" readonly="1"/>
-                    <field name="subject_code" invisible="1"/>
-                    <field name="subject_name_id" readonly="1"/>
-                    <field name="level" invisible="1"/>
-                    <field name="account_type" invisible="1"/>
-                    <field name="initial_balance_debit" base_string='期初余额' merge="False" child_name='借方' colspan='2' readonly='1' widget="bgcolor" color="success"/>
-                    <field name="initial_balance_credit" merge="True" child_name='贷方' readonly='1' widget="bgcolor" color="primary"/>
-                    <field name="current_occurrence_debit" base_string='本期发生' merge="False" child_name='借方' colspan='2' readonly='1' widget="bgcolor" color="success"/>
-                    <field name="current_occurrence_credit" merge="True" child_name='贷方' readonly='1' widget="bgcolor" color="primary"/>
-                    <field name="ending_balance_debit" base_string='期末余额' merge="False" child_name='借方' colspan='2' readonly='1' widget="bgcolor" color="success"/>
-                    <field name="ending_balance_credit" merge="True" child_name='贷方' readonly='1' widget="bgcolor" color="primary"/>
-          		</tree>
+                    <field name="period_id" readonly="1" />
+                    <field name="subject_code" invisible="1" />
+                    <field name="subject_name_id" readonly="1" />
+                    <field name="level" invisible="1" />
+                    <field name="account_type" invisible="1" />
+                    <field name="initial_balance_debit" base_string='期初余额' merge="False" child_name='借方' colspan='2' readonly='1' color="success" />
+                    <field name="initial_balance_credit" merge="True" child_name='贷方' readonly='1' color="primary" />
+                    <field name="current_occurrence_debit" base_string='本期发生' merge="False" child_name='借方' colspan='2' readonly='1' color="success" />
+                    <field name="current_occurrence_credit" merge="True" child_name='贷方' readonly='1' color="primary" />
+                    <field name="ending_balance_debit" base_string='期末余额' merge="False" child_name='借方' colspan='2' readonly='1' color="success" />
+                    <field name="ending_balance_credit" merge="True" child_name='贷方' readonly='1' color="primary" />
+                </tree>
             </field>
         </record>
 
@@ -33,12 +33,12 @@
                     <field name="subject_name_id" readonly="1"/>
                     <field name="level" invisible="1"/>
                     <field name="account_type" invisible="1"/>
-                    <field name="year_init_debit" base_string='年初余额' merge="False" child_name='借方' colspan='2'  widget="bgcolor" color="success" />
-                    <field name="year_init_credit" merge="True" child_name='贷方' widget="bgcolor" color="primary"/>
-                    <field name="cumulative_occurrence_debit" base_string='本年累计' merge="False" child_name='借方' colspan='2'  widget="bgcolor" color="success" readonly="1"/>
-                    <field name="cumulative_occurrence_credit" merge="True" child_name='贷方' widget="bgcolor" color="primary" readonly="1"/>
-                    <field name="ending_balance_debit" base_string='期末余额' merge="False" child_name='借方' colspan='2' readonly='1'  widget="bgcolor" color="success"/>
-                    <field name="ending_balance_credit" merge="True" child_name='贷方' readonly='1' widget="bgcolor" color="primary"/>
+                    <field name="year_init_debit" base_string='年初余额' merge="False" child_name='借方' colspan='2' color="success" />
+                    <field name="year_init_credit" merge="True" child_name='贷方' color="primary"/>
+                    <field name="cumulative_occurrence_debit" base_string='本年累计' merge="False" child_name='借方' colspan='2' color="success" readonly="1"/>
+                    <field name="cumulative_occurrence_credit" merge="True" child_name='贷方' color="primary" readonly="1"/>
+                    <field name="ending_balance_debit" base_string='期末余额' merge="False" child_name='借方' colspan='2' readonly='1' color="success"/>
+                    <field name="ending_balance_credit" merge="True" child_name='贷方' readonly='1' color="primary"/>
           		</tree>
             </field>
         </record>

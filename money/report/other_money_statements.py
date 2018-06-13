@@ -21,6 +21,7 @@ class OtherMoneyStatementsReport(models.Model):
                        digits=dp.get_precision('Amount'))
     partner_id = fields.Many2one('partner', string=u'往来单位', readonly=True)
     note = fields.Char(string=u'备注', readonly=True)
+    type = fields.Char(string=u'收支项类别', readonly=True)
 
     def init(self):
         # select other_money_order_line、other_money_order
@@ -34,6 +35,7 @@ class OtherMoneyStatementsReport(models.Model):
                     omo.bank_id,
                     omol.service,
                     omol.category_id,
+                    omo.type,
                     (CASE WHEN omo.type = 'other_get' THEN omol.amount + omol.tax_amount ELSE 0 END) AS get,
                     (CASE WHEN omo.type = 'other_pay' THEN omol.amount + omol.tax_amount ELSE 0 END) AS pay,
                     omo.partner_id,

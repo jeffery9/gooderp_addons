@@ -109,7 +109,7 @@ class BankAccount(models.Model):
             new_account = bank_account.account_id.id
             if not self.env.context.get('modify_from_webclient'):
                 if wang and (old_account != new_account or not old_account):
-                    raise UserError(u'帐户已被使用，不允许修改科目')
+                    raise UserError(u'账户已被使用，不允许修改科目')
         res = super(BankAccount, self).write(vals)
         return res
 

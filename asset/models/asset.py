@@ -35,9 +35,9 @@ class AssetCategory(models.Model):
     depreciation_number = fields.Float(u'折旧期间数')
     depreciation_value = fields.Float(u'最终残值率%')
     clean_income = fields.Many2one(
-        'finance.account', u'固定资产处置收入科目', domain="[('account_type','=','normal')]")
+        'finance.account', u'固定资产处置净收益科目', domain="[('account_type','=','normal')]")
     clean_costs = fields.Many2one(
-        'finance.account', u'固定资产处置成本科目', domain="[('account_type','=','normal')]")
+        'finance.account', u'固定资产处置净损失科目', domain="[('account_type','=','normal')]")
     # 用于软删除归档
     active = fields.Boolean(u'启用', default=True)
     clear_account_id = fields.Many2one(
@@ -374,14 +374,14 @@ class CreateCleanWizard(models.TransientModel):
         compute='_compute_period_id', ondelete='restrict', store=True)
     # 挂帐科目
     clean_account = fields.Many2one(
-        'finance.account', u'固定资产盘亏科目', domain="[('account_type','=','normal')]")
+        'finance.account', u'固定资产盘亏借方科目', domain="[('account_type','=','normal')]")
     # 处置支出
     cost_select = fields.Selection(SELECT, u'处置费用类型',
                                    required=True,
                                    default='bank')
     clean_cost = fields.Float(u'处置费用金额')
     cost_bank = fields.Many2one('bank.account', u'处置费用结算账户')
-    cost_account = fields.Many2one('finance.account', u'处置费用结算科目', domain="[('account_type','=','normal')]")
+    cost_account = fields.Many2one('finance.account', u'处置费用入账科目', domain="[('account_type','=','normal')]")
     # 处置收入
     income_select = fields.Selection(SELECT, u'残值收入类型',
                                      required=True,
@@ -389,7 +389,7 @@ class CreateCleanWizard(models.TransientModel):
     residual_income = fields.Float(u'残值收入金额')
     sell_tax_amount = fields.Float(u'销项税额')
     income_bank = fields.Many2one('bank.account', u'残值收入结算账户')
-    income_account = fields.Many2one('finance.account', u'残值收入结算科目', domain="[('account_type','=','normal')]")
+    income_account = fields.Many2one('finance.account', u'残值收入入账科目', domain="[('account_type','=','normal')]")
     company_id = fields.Many2one(
         'res.company',
         string=u'公司',
@@ -400,7 +400,7 @@ class CreateCleanWizard(models.TransientModel):
     def _generate_other_get(self, Asset):
         '''按发票收入生成收入单'''
         if self.bank_account and self.bank_account.account_id.currency_id:
-            raise UserError(u'系统占不支持外币结算固定资产')
+            raise UserError(u'系统暂不支持外币结算固定资产')
         get_category = self.env.ref('asset.asset_clean_get')
         other_money_order = self.with_context(type='other_get', modify_from_webclient=True).env['other.money.order'].create({
             'state': 'draft',
@@ -433,7 +433,7 @@ class CreateCleanWizard(models.TransientModel):
     def _clean_cost_generate_other_pay(self, Asset):
         pay_category = self.env.ref('asset.asset_clean_pay')  #
         if self.cost_bank and self.cost_bank.account_id.currency_id:
-            raise UserError(u'系统占不支持外币结算固定资产')
+            raise UserError(u'系统暂不支持外币结算固定资产')
         other_money_order = self.with_context(type='other_pay', modify_from_webclient=True).env['other.money.order'].create({
             'state': 'draft',
             'partner_id': None,
@@ -462,7 +462,7 @@ class CreateCleanWizard(models.TransientModel):
     def _clean_income_other_get(self, Asset):
         get_category = self.env.ref('asset.asset_clean_get')  #
         if self.income_bank and self.income_bank.account_id.currency_id:
-            raise UserError(u'系统占不支持外币结算固定资产')
+            raise UserError(u'系统暂不支持外币结算固定资产')
         other_money_order = self.with_context(type='other_get', modify_from_webclient=True).env['other.money.order'].create({
             'state': 'draft',
             'partner_id': None,
@@ -614,10 +614,10 @@ class CreateCleanWizard(models.TransientModel):
         Asset = self.env['asset'].browse(self.env.context.get('active_id'))
         clear_account_id = Asset.category_id.clear_account_id
         if self.clean_type == 'handle' and not (Asset.category_id.clean_income.id or Asset.category_id.clean_costs.id):
-            raise UserError(u'处置固定资产必须要在固定资产分类中设置固定资产处置收入科目和固定资产处置成本科目。')
+            raise UserError(u'处置固定资产必须要在固定资产分类中设置固定资产处置净收益科目和固定资产处置净损失科目。')
         if not Asset.account_accumulated_depreciation and not Asset.forever_no_depreciation:
             raise UserError(
-                u'处置固定资产必须要在固定资产分类（%s）中设置固定资产处置收入科目和固定资产处置成本科目' % Asset.account_accumulated_depreciation.name)
+                u'处置固定资产必须要在固定资产分类（%s）中设置固定资产处置净收益科目和固定资产处置净损失科目' % Asset.account_accumulated_depreciation.name)
         if self.clean_type == 'guazhang' and not self.clean_account.id:
             raise UserError(u'盘亏处理必须要挂账科目')
         depreciation2 = sum(line.cost_depreciation for line in Asset.line_ids)
@@ -682,7 +682,7 @@ class CreateChangWizard(models.TransientModel):
         'finance.period',
         u'会计期间',
         compute='_compute_period_id', ondelete='restrict', store=True)
-    chang_cost = fields.Float(u'增加金额',
+    chang_cost = fields.Float(u'变更金额',
                               digits=dp.get_precision('Amount'))
     chang_depreciation_number = fields.Integer(u'变更折旧期间')
     chang_tax = fields.Float(
@@ -716,6 +716,8 @@ class CreateChangWizard(models.TransientModel):
 
     @api.one
     def create_chang_account(self):
+        if self.chang_cost == 0 and self.chang_depreciation_number == 0 :
+            raise UserError(u'增加金额和变更折旧期间不能同时为空或不能同时为0')
         ''' 创建变更对应的结算单，确认应付 '''
         ''' TODO 逻辑似乎不太对，原值和折旧期的变更都会引起每月折旧的金额变化，但是已经提过的折旧差异没有处理 
            xuan 说：以前的一定不能改'''
@@ -836,7 +838,7 @@ class CreateAssetWizard(models.TransientModel):
                                    required=True,
                                    default='bank')
     account_credit = fields.Many2one(
-        'finance.account', u'资产贷方科目',
+        'finance.account', u'贷方入账科目',
         help=u'固定资产入账时：如自建，此处为在建工程', domain="[('account_type','=','normal')]")
     partner_id = fields.Many2one('partner', u'供应商', ondelete='restrict',
                                  domain="[('s_category_id', '!=', False)]",
@@ -872,11 +874,11 @@ class CreateAssetWizard(models.TransientModel):
             raise UserError(u'以前折旧必须大于0！\n折旧金额:%s' %
                             Asset.depreciation_previous)
         if self.partner_id and self.partner_id.s_category_id.account_id.currency_id:
-            raise UserError(u'系统占不支持外币结算固定资产')
+            raise UserError(u'系统暂不支持外币结算固定资产')
         if self.bank_account and self.bank_account.account_id.currency_id:
-            raise UserError(u'系统占不支持外币结算固定资产')
+            raise UserError(u'系统暂不支持外币结算固定资产')
         if self.account_credit and self.account_credit.currency_id:
-            raise UserError(u'系统占不支持外币结算固定资产')
+            raise UserError(u'系统暂不支持外币结算固定资产')
         if self.create_type == 'account' and self.account_credit:
             code = self.account_credit.code
             if code[:4] in error_code:

@@ -18,7 +18,7 @@
 			</field>
 		</record>
 
-        <!--固定资产处置/清查-->
+        <!--固定资产处置/盘亏-->
         <record id="create_clean_wizard_form" model="ir.ui.view">
             <field name="name">create.clean.wizard</field>
             <field name="model">create.clean.wizard</field>
@@ -45,7 +45,7 @@
                         </group>
                     </group>
                     <footer>
-                        <button name="create_clean_account"  string="生成处置/清查凭证" type="object" class="oe_highlight"/>
+                        <button name="create_clean_account"  string="生成凭证" type="object" class="oe_highlight"/>
                         或者
                         <button string="取消" class="oe_link" special="cancel"/>
                     </footer>
@@ -117,7 +117,7 @@
         <!-- form view在此前定义，后面的form view引用了这两个action，所以不能把它们放在action文件里 -->
         <!-- 固定资产处置/清查 action -->
         <record id="create_clean_action" model="ir.actions.act_window">
-            <field name="name">固定资产处置/清查</field>
+            <field name="name">固定资产处置/盘亏</field>
             <field name="res_model">create.clean.wizard</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="create_clean_wizard_form"/>
@@ -153,7 +153,7 @@
 	                	<button name="%(create_asset_action)d" string="确认" type="action" class="oe_highlight" attrs="{'invisible': ['|',('is_init', '!=', False),('state', '!=', 'draft')]}"/>
                         <button name="asset_done" string="确认" type="object" class="oe_highlight" attrs="{'invisible': ['|',('is_init', '!=', True),('state', '!=', 'draft')]}"/>
 	                	<button name='asset_draft' states="done" string="撤销确认" type="object" />
-                        <button name="%(create_clean_action)d" string="处置/清查固定资产" type="action" class="btn-primary"
+                        <button name="%(create_clean_action)d" string="处置/盘亏固定资产" type="action" class="btn-primary"
                         attrs="{'invisible': [('state', '!=', 'done')]}"/>
                         <button name="%(create_chang_action)d" string="变更固定资产" type="action" class="btn-primary"
                         attrs="{'invisible': [('state', '!=', 'done')]}"/>
