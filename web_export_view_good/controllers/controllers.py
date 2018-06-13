@@ -224,6 +224,8 @@ class ExcelExportView(ExcelExport, ):
         # if user does unfreeze, don't leave a split there
         worksheet.set_remove_splits(True)
         worksheet.set_fit_num_pages(1)
+        worksheet.set_header_str('')
+        worksheet.set_footer_str('')
         worksheet.page_preview = True
         fp_currency = StringIO.StringIO()
         workbook.save(fp_currency)
