@@ -913,12 +913,14 @@ class CreateVouchersSummaryWizard(models.TransientModel):
                 occurrence_amount = self.get_current_occurrence_amount(
                     local_currcy_period, account_line)  # 本期明细
                 create_vals += occurrence_amount
-                if local_currcy_period.is_closed:
-                    cumulative_year_occurrence = self.get_year_balance(
-                        local_currcy_period, account_line)  # 本期合计 本年累计
-                else:
-                    cumulative_year_occurrence = self.get_unclose_year_balance(copy.deepcopy(initial_balance),
-                                                                               local_currcy_period, account_line)
+                # if local_currcy_period.is_closed:
+                #     cumulative_year_occurrence = self.get_year_balance(
+                #         local_currcy_period, account_line)  # 本期合计 本年累计
+                # else:
+                #     cumulative_year_occurrence = self.get_unclose_year_balance(copy.deepcopy(initial_balance),
+                #                                                                local_currcy_period, account_line)
+                cumulative_year_occurrence = self.get_year_balance(
+                    local_currcy_period, account_line)  # 本期合计 本年累计
                 create_vals += cumulative_year_occurrence
                 if local_currcy_period.id == self.period_end_id.id:
                     break_flag = False
@@ -998,12 +1000,14 @@ class CreateVouchersSummaryWizard(models.TransientModel):
                 initial_balance = self.get_initial_balance(
                     local_last_period, account_line)
                 create_vals.append(initial_balance)
-                if local_currcy_period.is_closed:
-                    cumulative_year_occurrence = self.get_year_balance(
-                        local_currcy_period, account_line)
-                else:
-                    cumulative_year_occurrence = self.get_unclose_year_balance(copy.deepcopy(initial_balance),
-                                                                               local_currcy_period, account_line)
+                # if local_currcy_period.is_closed:
+                #     cumulative_year_occurrence = self.get_year_balance(
+                #         local_currcy_period, account_line)
+                # else:
+                #     cumulative_year_occurrence = self.get_unclose_year_balance(copy.deepcopy(initial_balance),
+                #                                                                local_currcy_period, account_line)
+                cumulative_year_occurrence = self.get_year_balance(
+                    local_currcy_period, account_line)
                 create_vals += cumulative_year_occurrence
                 if local_currcy_period.id == self.period_end_id.id:
                     break_flag = False
