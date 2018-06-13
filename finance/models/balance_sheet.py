@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api
+from odoo import models, fields, api, tools
 from odoo.addons.web_export_view_good.controllers.controllers import ExcelExportView, ReportTemplate
 from odoo.exceptions import UserError
+import odoo.addons.decimal_precision as dp
 from math import fabs
 import calendar
 import os
@@ -28,17 +29,17 @@ class BalanceSheet(models.Model):
     line = fields.Integer(u'序号', required=True, help=u'资产负债表的行次')
     balance = fields.Char(u'资产')
     line_num = fields.Char(u'行次', help=u'此处行次并不是出报表的实际的行数,只是显示用的用来符合国人习惯')
-    ending_balance = fields.Float(u'期末数')
+    ending_balance = fields.Float(u'期末数',digits=dp.get_precision('Amount'))
     balance_formula = fields.Text(
         u'科目范围', help=u'设定本行的资产负债表的科目范围，例如1001~1012999999 结束科目尽可能大一些方便以后扩展')
-    beginning_balance = fields.Float(u'年初数')
+    beginning_balance = fields.Float(u'年初数',digits=dp.get_precision('Amount'))
 
-    balance_two = fields.Char(u'负债和所有者权益')
+    balance_two = fields.Char(u'负债和净资产')
     line_num_two = fields.Char(u'行次', help=u'此处行次并不是出报表的实际的行数,只是显示用的用来符合国人习惯')
-    ending_balance_two = fields.Float(u'期末数')
+    ending_balance_two = fields.Float(u'期末数',digits=dp.get_precision('Amount'))
     balance_two_formula = fields.Text(
         u'科目范围', help=u'设定本行的资产负债表的科目范围，例如1001~1012999999 结束科目尽可能大一些方便以后扩展')
-    beginning_balance_two = fields.Float(u'年初数', help=u'报表行本年的年余额')
+    beginning_balance_two = fields.Float(u'年初数',digits=dp.get_precision('Amount'), help=u'报表行本年的年余额')
     company_id = fields.Many2one(
         'res.company',
         string=u'公司',
@@ -85,6 +86,7 @@ class CreateBalanceSheetWizard(models.TransientModel):
     @api.multi
     def compute_balance(self, parameter_str, period_id, compute_field_list):
         """根据所填写的 科目的code 和计算的字段 进行计算对应的资产值"""
+        digits = self.env['decimal.precision'].precision_get('Amount')
         if parameter_str:
             parameter_str_list = parameter_str.split('~')
             subject_vals = []
@@ -106,15 +108,16 @@ class CreateBalanceSheetWizard(models.TransientModel):
                 elif trial_balance.subject_name_id.costs_types == 'debt' or trial_balance.subject_name_id.costs_types == 'equity':
                     subject_vals.append(
                         trial_balance[compute_field_list[1]] - trial_balance[compute_field_list[0]])
-            return sum(subject_vals)
+            return tools.float_round(sum(subject_vals),digits)
 
         else:
             return 0
 
     def deal_with_balance_formula(self, balance_formula, period_id, year_begain_field,assets):
         if balance_formula:
-            return_vals = sum([self.compute_balance(one_formula, period_id, year_begain_field)
-                               for one_formula in balance_formula.split(';')])
+            digits = self.env['decimal.precision'].precision_get('Amount')
+            return_vals = tools.float_round(sum([self.compute_balance(one_formula, period_id, year_begain_field)
+                               for one_formula in balance_formula.split(';')]),digits)
             for one_formula in balance_formula.split(';'):
                 if one_formula:
                     parameter_str_list = one_formula.split('~')
@@ -219,10 +222,11 @@ class CreateBalanceSheetWizard(models.TransientModel):
         }
 
     def deal_with_profit_formula(self, occurrence_balance_formula, period_id, year_begain_field):
+        digits = self.env['decimal.precision'].precision_get('Amount')
         if occurrence_balance_formula:
-            return_vals = sum([self.compute_profit(balance_formula, period_id, year_begain_field)
+            return_vals = tools.float_round(sum([self.compute_profit(balance_formula, period_id, year_begain_field)
                                for balance_formula in occurrence_balance_formula.split(";")
-                               ])
+                               ]),digits)
         else:
             return_vals = 0
         return return_vals
@@ -322,6 +326,7 @@ class CreateBalanceSheetWizard(models.TransientModel):
             begint_date, no = self.env['finance.period'].get_period_month_date_range(
                 self.env['finance.period'].get_year_fist_period_id())
             begin_balances = self.env['trial.balance'].search([('subject_name_id', 'in', subject_ids.ids),('account_type', '=', 'normal'), ('period_id', '=', self.env['finance.period'].get_year_fist_period_id().id)])
+            digits = self.env['decimal.precision'].precision_get('Amount')
             for trial_balance in trial_balances:
                 if trial_balance.subject_name_id.balance_directions == 'in':
                     update = trial_balance[compute_field_list[0]]-trial_balance[compute_field_list[1]]
@@ -361,21 +366,22 @@ class CreateBalanceSheetWizard(models.TransientModel):
                     subject_vals_out.append(update)
 
             if sign_out and sign_in:  # 方向有借且有贷
-                total_sum = sum(subject_vals_out) - sum(subject_vals_in)
+                total_sum = tools.float_round(sum(subject_vals_out),digits) - tools.float_round(sum(subject_vals_in),digits)
             else:
                 if subject_vals_in:
-                    total_sum = sum(subject_vals_in)
+                    total_sum = tools.float_round(sum(subject_vals_in),digits)
                 else:
-                    total_sum = sum(subject_vals_out)
+                    total_sum = tools.float_round(sum(subject_vals_out),digits)
 
                 if 'current' not in compute_field_list[1]:
-                    total_sum += sum(begin_balances.mapped('cumulative_occurrence_debit'))
+                    total_sum += tools.float_round(sum(begin_balances.mapped('cumulative_occurrence_debit')),digits)
 
             return total_sum
 
     @api.multi
     def compute_activity(self, formula, period_id, report_fields):
         """ 根据传进来的 的科目的code 进行业务活动表的计算 """
+        digits = self.env['decimal.precision'].precision_get('Amount')
         if formula:
             formula_list = formula.split('~')
             subject_vals = []
@@ -391,7 +397,7 @@ class CreateBalanceSheetWizard(models.TransientModel):
                 subject_vals.append(trial_balance[report_fields[0]])
                 subject_vals.append(trial_balance[report_fields[1]])
 
-            return sum(subject_vals)
+            return tools.float_round(sum(subject_vals),digits)
         else:
             return 0
 
@@ -512,16 +518,17 @@ class CreateBalanceSheetWizard(models.TransientModel):
         return _sum(report_values, all_op)
 
     def deal_with_activity_formula(self, report_fields_formula, period_id, report_fields, type, report_field):
+        digits = self.env['decimal.precision'].precision_get('Amount')
         if type == 'code' and report_fields_formula:
-            return_vals = sum([self.compute_profit(formula, period_id, report_fields)
-                               for formula in report_fields_formula.split(';')])
+            return_vals = tools.float_round(sum([self.compute_profit(formula, period_id, report_fields)
+                               for formula in report_fields_formula.split(';')]),digits)
         elif type == 'vourch' and report_fields_formula:
             return_vals = self.compute_vourch_profit(report_fields_formula, period_id, report_fields)
         elif type == 'lines' and report_fields_formula:
             return_vals = self.compute_lines(report_fields_formula, report_field)
         else:
             return_vals = 0
-        return return_vals
+        return tools.float_round(return_vals,digits)
 
     @api.multi
     def create_activity_statement(self):
@@ -738,10 +745,10 @@ class ProfitStatement(models.Model):
 
     balance = fields.Char(u'项目', help=u'报表的行次的总一个名称')
     line_num = fields.Char(u'行次', help=u'生成报表的行次')
-    cumulative_occurrence_balance = fields.Float(u'本年累计金额', help=u'本年利润金额')
+    cumulative_occurrence_balance = fields.Float(u'本年累计金额',digits=dp.get_precision('Amount'), help=u'本年利润金额')
     occurrence_balance_formula = fields.Text(
         u'科目范围', help=u'设定本行的利润的科目范围，例如1001~1012999999 结束科目尽可能大一些方便以后扩展')
-    current_occurrence_balance = fields.Float(u'本月金额', help=u'本月的利润的金额')
+    current_occurrence_balance = fields.Float(u'本月金额',digits=dp.get_precision('Amount'), help=u'本月的利润的金额')
     company_id = fields.Many2one(
         'res.company',
         string=u'公司',
@@ -765,12 +772,12 @@ class BusinessActivityStatement(models.Model):
                             index=True, )
     balance = fields.Char(u'项目', help=u'报表的行次的总一个名称')
     line_num = fields.Char(u'行次', help=u'生成报表的行次')
-    cumulative_total = fields.Float(u'合计', help=u'本年累计数合计', compute='_compute_total')
-    cumulative_restricted = fields.Float(u'限定性', help=u'本年累计数限定性')
-    cumulative_unrestricted = fields.Float(u'非限定性', help=u'本年累计数非限定性')
-    current_total = fields.Float(u'合计', help=u'本月数合计', compute='_compute_total')
-    current_restricted = fields.Float(u'限定性', help=u'本月数限定性')
-    current_unrestricted = fields.Float(u'非限定性', help=u'本月数非限定性')
+    cumulative_total = fields.Float(u'合计', help=u'本年累计数合计', compute='_compute_total',digits=dp.get_precision('Amount'))
+    cumulative_restricted = fields.Float(u'限定性', help=u'本年累计数限定性',digits=dp.get_precision('Amount'))
+    cumulative_unrestricted = fields.Float(u'非限定性', help=u'本年累计数非限定性',digits=dp.get_precision('Amount'))
+    current_total = fields.Float(u'合计', help=u'本月数合计', compute='_compute_total',digits=dp.get_precision('Amount'))
+    current_restricted = fields.Float(u'限定性', help=u'本月数限定性',digits=dp.get_precision('Amount'))
+    current_unrestricted = fields.Float(u'非限定性', help=u'本月数非限定性',digits=dp.get_precision('Amount'))
     formula_restricted = fields.Text(
         u'限定性科目范围', help=u'设定本行的限定性业务的科目范围，例如1001~1012999999 结束科目尽可能大一些方便以后扩展')
     formula_unrestricted = fields.Text(

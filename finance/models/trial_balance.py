@@ -80,6 +80,7 @@ class TrialBalance(models.Model):
 
     @api.model
     def check_trial_balance(self, period_id):
+        digits = self.env['decimal.precision'].precision_get('Amount')
         res = {}
         trial_balance_items = self.env['trial.balance'].search([('period_id', '=', period_id.id), ('account_type', '=', 'normal')])
 
@@ -90,7 +91,7 @@ class TrialBalance(models.Model):
             "total_cumulative_occurrence_credit"
         ]
         for field in field_list:
-            res.update({field: tools.float_round(sum(trial_balance_items.mapped(field[6:])),dp.get_precision('Amount'))})
+            res.update({field: tools.float_round(sum(trial_balance_items.mapped(field[6:])),digits)})
 
         if period_id == period_id.get_init_period():
             diff_year_init = res.get('total_year_init_debit', 0) - res.get('total_year_init_credit', 0)
@@ -134,6 +135,8 @@ class CheckTrialBalanceWizard(models.TransientModel):
         res = super(CheckTrialBalanceWizard, self).default_get(fields)
         active_id = self.env.context.get('active_id', False)
 
+        digits = self.env['decimal.precision'].precision_get('Amount')
+
         trial_balance_item = self.env['trial.balance'].browse(active_id)
         period_id = trial_balance_item.period_id
         is_init_period = False
@@ -148,7 +151,7 @@ class CheckTrialBalanceWizard(models.TransientModel):
             "total_cumulative_occurrence_credit"
         ]
         for field in field_list:
-            res.update({field: tools.float_round(sum(trial_balance_items.mapped(field[6:])),dp.get_precision('Amount'))})
+            res.update({field: tools.float_round(sum(trial_balance_items.mapped(field[6:])),digits)})
 
         res.update({'period_id': period_id.id, 'is_init_period': is_init_period})
 
@@ -288,7 +291,7 @@ class ChangeCumulativeOccurrenceWizard(models.TransientModel):
                         'account_id': trial_balance_item.subject_name_id.id
                 })
         return res
-    
+
     @api.multi
     def update_cumulative_occurrence(self):
         parent_accounts =[]
@@ -415,6 +418,8 @@ class CreateTrialBalanceWizard(models.TransientModel):
             2.判断如果所选的区间的 前一个期间没有关闭则报错
             3.如果上一个区间不存在则报错
         """
+        digits = self.env['decimal.precision'].precision_get('Amount')
+
         trial_balance_objs = self.env['trial.balance'].search(
             [('period_id', '=', self.period_id.id)])
         trial_balance_ids = [
@@ -482,16 +487,16 @@ class CreateTrialBalanceWizard(models.TransientModel):
             child_trial_items = self.env['trial.balance'].search([('subject_name_id', 'in', child_account_ids.ids),('period_id','=',self.period_id.id)])
             trial_item.write(
                 {
-                    "year_init_debit": tools.float_round(sum(child_trial_items.mapped("year_init_debit")),dp.get_precision('Amount')),
-                    "year_init_credit": tools.float_round(sum(child_trial_items.mapped("year_init_credit")),dp.get_precision('Amount')),
-                    "initial_balance_debit": tools.float_round(sum(child_trial_items.mapped("initial_balance_debit")),dp.get_precision('Amount')),
-                    "initial_balance_credit": tools.float_round(sum(child_trial_items.mapped("initial_balance_credit")),dp.get_precision('Amount')),
-                    "current_occurrence_debit": tools.float_round(sum(child_trial_items.mapped("current_occurrence_debit")),dp.get_precision('Amount')),
-                    "current_occurrence_credit": tools.float_round(sum(child_trial_items.mapped("current_occurrence_credit")),dp.get_precision('Amount')),
-                    "ending_balance_debit": tools.float_round(sum(child_trial_items.mapped("ending_balance_debit")),dp.get_precision('Amount')),
-                    "ending_balance_credit": tools.float_round(sum(child_trial_items.mapped("ending_balance_credit")),dp.get_precision('Amount')),
-                    "cumulative_occurrence_debit": tools.float_round(sum(child_trial_items.mapped("cumulative_occurrence_debit")),dp.get_precision('Amount')),
-                    "cumulative_occurrence_credit": tools.float_round(sum(child_trial_items.mapped("cumulative_occurrence_credit")),dp.get_precision('Amount')),
+                    "year_init_debit": tools.float_round(sum(child_trial_items.mapped("year_init_debit")),digits),
+                    "year_init_credit": tools.float_round(sum(child_trial_items.mapped("year_init_credit")),digits),
+                    "initial_balance_debit": tools.float_round(sum(child_trial_items.mapped("initial_balance_debit")),digits),
+                    "initial_balance_credit": tools.float_round(sum(child_trial_items.mapped("initial_balance_credit")),digits),
+                    "current_occurrence_debit": tools.float_round(sum(child_trial_items.mapped("current_occurrence_debit")),digits),
+                    "current_occurrence_credit": tools.float_round(sum(child_trial_items.mapped("current_occurrence_credit")),digits),
+                    "ending_balance_debit": tools.float_round(sum(child_trial_items.mapped("ending_balance_debit")),digits),
+                    "ending_balance_credit": tools.float_round(sum(child_trial_items.mapped("ending_balance_credit")),digits),
+                    "cumulative_occurrence_debit": tools.float_round(sum(child_trial_items.mapped("cumulative_occurrence_debit")),digits),
+                    "cumulative_occurrence_credit": tools.float_round(sum(child_trial_items.mapped("cumulative_occurrence_credit")),digits),
                 }
             )
 
@@ -647,7 +652,7 @@ class CreateVouchersSummaryWizard(models.TransientModel):
     no_occurred = fields.Boolean(
         u'有发生额', default=True, help=u'无发生额的科目不显示明细账，默认为不显示')
     no_balance = fields.Boolean(
-        u'有金额', default=True, help=u'无余额的科目不显示明细账，默认为不显示')
+        u'有余额', default=True, help=u'无余额的科目不显示明细账，默认为不显示')
     company_id = fields.Many2one(
         'res.company',
         string=u'公司',
@@ -787,6 +792,8 @@ class CreateVouchersSummaryWizard(models.TransientModel):
     @api.multi
     def get_unclose_year_balance(self, initial_balance_new, period, subject_name):
         """取得没有关闭的期间的 本期合计和 本年累计"""
+        digits = self.env['decimal.precision'].precision_get('Amount')
+
         current_occurrence = {}
         child_ids = self.env['finance.account'].search([('id','child_of',subject_name.id)])
         account_ids = tuple(child_ids.ids)
@@ -799,8 +806,8 @@ class CreateVouchersSummaryWizard(models.TransientModel):
         current_credit = 0
         current_debit = 0
         if sql_results:
-            current_credit = tools.float_round(sum(row.get('credit', 0) for row in sql_results),dp.get_precision('Amount'))
-            current_debit = tools.float_round(sum(row.get('debit', 0) for row in sql_results),dp.get_precision('Amount'))
+            current_credit = tools.float_round(sum(row.get('credit', 0) for row in sql_results),digits)
+            current_debit = tools.float_round(sum(row.get('debit', 0) for row in sql_results),digits)
         # 本年累计
         # 查找累计区间,作本年累计
         year_balance_debit = year_balance_credit = 0
@@ -819,18 +826,18 @@ class CreateVouchersSummaryWizard(models.TransientModel):
             sql_results = self.env.cr.dictfetchall()
             if sql_results:
                 year_balance_debit = year_balance_debit + \
-                    tools.float_round(sum(row.get('debit', 0) for row in sql_results),dp.get_precision('Amount'))
+                    tools.float_round(sum(row.get('debit', 0) for row in sql_results),digits)
                 year_balance_credit = year_balance_credit + \
-                    tools.float_round(sum(row.get('credit', 0) for row in sql_results),dp.get_precision('Amount'))
+                    tools.float_round(sum(row.get('credit', 0) for row in sql_results),digits)
 
         if init_period_id:
             trial_balance_init_period = self.env['trial.balance'].search([('subject_name_id','=', subject_name.id),('period_id','=',init_period_id.id)])
-            year_balance_debit -= tools.float_round(sum(trial_balance_init_period.mapped('year_init_debit')),dp.get_precision('Amount'))
-            year_balance_credit -= tools.float_round(sum(trial_balance_init_period.mapped('year_init_credit')),dp.get_precision('Amount'))
+            year_balance_debit -= tools.float_round(sum(trial_balance_init_period.mapped('year_init_debit')),digits)
+            year_balance_credit -= tools.float_round(sum(trial_balance_init_period.mapped('year_init_credit')),digits)
 
             if subject_name.costs_types in ['in', 'out']:
-                year_balance_debit += tools.float_round(sum(trial_balance_init_period.mapped('cumulative_occurrence_debit')),dp.get_precision('Amount'))
-                year_balance_credit += tools.float_round(sum(trial_balance_init_period.mapped('cumulative_occurrence_credit')),dp.get_precision('Amount'))
+                year_balance_debit += tools.float_round(sum(trial_balance_init_period.mapped('cumulative_occurrence_debit')),digits)
+                year_balance_credit += tools.float_round(sum(trial_balance_init_period.mapped('cumulative_occurrence_credit')),digits)
 
         direction_tuple_current = self.judgment_lending(initial_balance_new.get('balance', 0) if
                                                         initial_balance_new['direction'] == u'借' else -initial_balance_new.get(
