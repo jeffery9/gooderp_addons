@@ -10,7 +10,7 @@
                             该模块实现了非营利组织的功能。
     ''',
     'version': '11.11',
-    'depends': ['keep_good','auto_exchange','tree_zero_display_blank','money','core'],
+    'depends': ['web_error_dialog','keep_good','auto_exchange','tree_zero_display_blank','money','core'],
     'data': [
         'views/inout_activities_view.xml',
         'views/nonprofit_money_order_view.xml',

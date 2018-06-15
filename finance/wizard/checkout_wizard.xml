@@ -5,14 +5,14 @@
             <field name="name">checkout.wizard.form</field>
             <field name="model">checkout.wizard</field>
             <field name="arch" type="xml">
-                <form string="收支结转">
+                <form string="月末结账">
                 	<group>
 	                	<group>
 	                		<field name='date'/>
                             <field name='period_id' invisible='True' style="width: 30%%" />
 	                	</group>
                         <footer>
-                            <button name="button_checkout" type="object" string="结转" class="oe_highlight" />
+                            <button name="button_checkout" type="object" string="结账" class="oe_highlight" />
                             _
                             <button name="button_counter_checkout" type="object" string="反结账"
                                                        groups="base.group_no_one" class="oe_highlight"/>
@@ -22,7 +22,7 @@
             </field>
         </record>
         <record id="preiod_check_action" model="ir.actions.act_window">
-            <field name="name">收支结转</field>
+            <field name="name">月末结账</field>
             <field name="res_model">checkout.wizard</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
@@ -30,6 +30,6 @@
         </record>
         <!--结账菜单-->
         <menuitem id='checkout_menu' name='月末结账' parent='finance_menu' sequence='15'/>
-        <menuitem id='preiod_check_menu' name='收支结转' action='preiod_check_action' parent='checkout_menu' sequence='30'/>
+        <menuitem id='preiod_check_menu' name='月末结账' action='preiod_check_action' parent='checkout_menu' sequence='30'/>
     </data>
 </openerp>

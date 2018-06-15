@@ -38,7 +38,7 @@
 			(4, ref('nonprofit_money.menu_nonprofit_money_receipt_action')),
 			(4, ref('money.menu_money_transfer_order_action')),
 			(4, ref('money.menu_money_root'))]"/>
-			<field name="implied_ids" eval="[(4, ref('finance.group_multi_currency'))]"/>
+			<field name="implied_ids" eval="[(4, ref('nonprofit_money.ccb_account')),(4, ref('nonprofit_money.ccb_money'))]"/>
 			<field name="comment">用于显示管理员菜单</field>
 		</record>
 	</data>

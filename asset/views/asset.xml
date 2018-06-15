@@ -65,12 +65,17 @@
                             <field name="period_id"/>
                             <field name="asset_account_id" readonly="1"/>
                             <field name="chang_cost"/>
+                            <field name="depreciation_previous_change"/>
                             <field name="chang_depreciation_number"/>
                             <field name="chang_tax"/>
-                            <field name="chang_type" attrs="{'required':[('chang_cost', '&gt;', 0)], 'invisible': [('chang_cost', '&lt;=', 0)]}"/>
+                            <field name="chang_type" attrs="{'required':[('chang_cost', '&gt;', 0)], 'required':[('chang_cost', '&lt;', 0)], 'invisible': [('chang_cost', '=', 0)]}"/>
                             <field name="account_credit" options="{'no_open': True, 'no_create': True}"
-                                    attrs="{'required':[('chang_type', '=', 'account'),('chang_cost', '&gt;', 0)], 'invisible': ['|',('chang_type', '!=', 'account'), ('chang_cost', '&lt;=', 0)]}" />
-                            <field name="bank_account" attrs="{'required':[('chang_type', '=', 'bank'),('chang_cost', '&gt;', 0)], 'invisible': ['|',('chang_type', '!=', 'bank'),('chang_cost', '&lt;=', 0)]}" options="{'no_open': True, 'no_create': True}"/>
+                                    attrs="{'required':[('chang_type', '=', 'account'),('chang_cost', '&gt;', 0)],
+                                     'required':[('chang_type', '=', 'account'),('chang_cost', '&lt;', 0)],
+                                     'invisible': ['|',('chang_type', '!=', 'account'), ('chang_cost', '=', 0)]}" />
+                            <field name="bank_account" attrs="{'required':[('chang_type', '=', 'bank'),('chang_cost', '&gt;', 0)],
+                                    'required':[('chang_type', '=', 'bank'),('chang_cost', '&lt;', 0)],
+                                    'invisible': ['|',('chang_type', '!=', 'bank'),('chang_cost', '=', 0)]}" options="{'no_open': True, 'no_create': True}"/>
                         </group>
                         <group>
                             <field name="change_reason" required="1"/>
@@ -97,7 +102,7 @@
                             <field name="account_ids" invisible="1"/>
                             <!--过滤科目，客户后来不想要的，所以使用了NOT IN如需要使用则改为in-->
                             <field name="account_credit" domain="[('id', 'not in', account_ids)]"
-                                    attrs="{'required':[('create_type', '=', 'account')], 'invisible': [('create_type', '!=', 'account')]}"                                               options="{'no_open': True, 'no_create': True}"/>/>
+                                    attrs="{'required':[('create_type', '=', 'account')], 'invisible': [('create_type', '!=', 'account')]}"  options="{'no_open': True, 'no_create': True}"/>/>
                             <field name="partner_id"
                                    domain="[('s_category_id', '!=', False)]" context="{'form_view_ref': 'core.supplier_address_form'}"
                                    attrs="{'required':[('create_type', '=', 'partner')], 'invisible': [('create_type', '!=', 'partner')]}"/>
@@ -167,15 +172,16 @@
                                 <field name="category_id" options="{'no_open': True, 'no_create': True}"/>
                                 <field name="cost"/>
                                 <field name="surplus_value"/>
+                                <field name="net_value"/>
                             </group>
                             <group>
-                                <field name="net_value"/>
                                 <field name="forever_no_depreciation" invisible = '1'/>
                                 <field name="no_depreciation" attrs="{'invisible': [('forever_no_depreciation', '=', True)]}"/>
                                 <field name="depreciation_number" attrs="{'invisible': [('forever_no_depreciation', '=', True)]}"/>
+                                <field name="surplus_depreciation_number" attrs="{'invisible': [('forever_no_depreciation', '=', True)]}"/>
                                 <field name="depreciation_value" attrs="{'invisible': [('forever_no_depreciation', '=', True)]}"/>
                                 <field name="cost_depreciation" attrs="{'invisible': [('forever_no_depreciation', '=', True)]}"/>
-
+                                <field name="not_depreciation" attrs="{'invisible': [('forever_no_depreciation', '=', True)]}"/>
                             </group>
                         </group>
                         <notebook>

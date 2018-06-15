@@ -159,7 +159,8 @@ class MailThread(models.AbstractModel):
     def create(self, vals):
         thread_row = super(MailThread, self).create(vals)
         approvers = self.__add_approver__(thread_row, self._name, thread_row.id)
-        thread_row._approver_num = len(approvers)
+        thread_row.with_context(modify_from_webclient=
+                                      True)._approver_num = len(approvers)
         return thread_row
 
     @api.multi

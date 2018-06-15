@@ -5,7 +5,7 @@ from odoo import fields, models, api
 
 LINE_TYPES = [('get', u'销售收款'),
               ('pay', u'采购付款'),
-              ('category', u'其他收支'),
+              ('category', u'收支'),
               ('begin', u'科目期初'),
               ('end', u'科目期末'),
               ('lines', u'表行计算'),

@@ -75,6 +75,23 @@ class Asset(models.Model):
         # 残值按固定资产分类上的残值比率计算
         self.depreciation_value = self.category_id.depreciation_value * self.cost / 100
 
+    #20180613新增
+    @api.multi
+    @api.depends('depreciation_number','line_ids')
+    def _get_surplus_depreciation_number(self):
+        '''计算剩余折旧期间'''
+        #剩余折旧期间＝折旧期间数-已折旧期间数
+        for record in self:
+            record.already_depreciation_number = len(record.line_ids)
+            record.surplus_depreciation_number = record.depreciation_number - record.already_depreciation_number
+
+    @api.multi
+    @api.depends('net_value', 'depreciation_value')
+    def _get_not_depreciation(self):
+        '''计算未提折旧额'''
+        #未提折旧额=原值-已提折旧额-残值=净值-残值
+        self.not_depreciation = self.net_value - self.depreciation_value
+    # 20180613新增    
     @api.one
     @api.depends('surplus_value', 'depreciation_value', 'depreciation_number', 'no_depreciation')
     def _get_cost_depreciation(self):
@@ -123,6 +140,11 @@ class Asset(models.Model):
         'Amount'), states=READONLY_STATES)
     cost_depreciation = fields.Float(u'每月折旧额', digits=dp.get_precision(
         'Amount'), store=True, compute='_get_cost_depreciation')
+    #20180613新增 未提折旧额 剩余折旧期间
+    not_depreciation = fields.Float(u'未提折旧额', dp.get_precision(
+        'Amount'), store=True, compute='_get_not_depreciation')
+    surplus_depreciation_number = fields.Integer(u'剩余折旧期间', store=False, compute='_get_surplus_depreciation_number')
+    #20180613    
     forever_no_depreciation = fields.Boolean(u'永不折旧')
 
     state = fields.Selection([('draft', u'草稿'),
@@ -682,9 +704,11 @@ class CreateChangWizard(models.TransientModel):
         'finance.period',
         u'会计期间',
         compute='_compute_period_id', ondelete='restrict', store=True)
-    chang_cost = fields.Float(u'变更金额',
+    chang_cost = fields.Float(u'原值变更金额',
                               digits=dp.get_precision('Amount'))
-    chang_depreciation_number = fields.Integer(u'变更折旧期间')
+    depreciation_previous_change = fields.Float(u'累计折旧变更金额',
+                              digits=dp.get_precision('Amount'))
+    chang_depreciation_number = fields.Integer(u'折旧期间变更数')
     chang_tax = fields.Float(
         u'增加税额', digits=dp.get_precision('Amount'))
     #chang_partner_id = fields.Many2one('partner', u'供应商', ondelete='restrict')
@@ -694,8 +718,7 @@ class CreateChangWizard(models.TransientModel):
     chang_type = fields.Selection(SELECT, u'类型',
                                    required=True,
                                    default='bank')
-    account_credit = fields.Many2one(
-        'finance.account', u'资产贷方科目', domain="[('account_type','=','normal')]")
+    account_credit = fields.Many2one('finance.account', u'贷方入账科目', domain="[('account_type','=','normal')]")
     bank_account = fields.Many2one('bank.account', u'结算账户', ondelete='restrict',
                                    help=u'固定资产入账时：如现金，此处为选账户')
     account_ids = fields.Char(u'可使用贷方科目id', help=u'技术字段，用于过滤')
@@ -716,8 +739,8 @@ class CreateChangWizard(models.TransientModel):
 
     @api.one
     def create_chang_account(self):
-        if self.chang_cost == 0 and self.chang_depreciation_number == 0 :
-            raise UserError(u'增加金额和变更折旧期间不能同时为空或不能同时为0')
+        if self.chang_cost == 0 and self.chang_depreciation_number == 0 and self.depreciation_previous_change == 0:
+            raise UserError(u'增加金额\变更折旧期间\累计折旧变更金额，不能同时为空或不能同时为0！')
         ''' 创建变更对应的结算单，确认应付 '''
         ''' TODO 逻辑似乎不太对，原值和折旧期的变更都会引起每月折旧的金额变化，但是已经提过的折旧差异没有处理 
            xuan 说：以前的一定不能改'''
@@ -734,12 +757,66 @@ class CreateChangWizard(models.TransientModel):
         Asset.depreciation_value = Asset.depreciation_value + Asset.category_id.depreciation_value * \
                                                               self.chang_cost / 100  # 残值
         Asset._get_cost_depreciation() # 运行折旧额计算
-        if self.chang_cost > 0 and self.chang_type == 'bank':
+        #累计
+        Asset.cost_depreciation = self.depreciation_previous_change +Asset.cost_depreciation
+        if self.chang_date < Asset.date:
+            raise UserError(u'变更日期不能小于记账日期，当前记账日期为:(%s)' % Asset.date)
+        # if self.chang_cost > 0 and self.chang_type == 'bank':
+        #     self._bank_account_change_other_pay(Asset, chang_before_cost, chang_before_depreciation_number)
+        # elif self.chang_cost > 0 and self.chang_type == 'account':
+        #     self._construction_change_voucher(Asset, chang_before_cost, chang_before_depreciation_number)
+        if self.chang_cost != 0 and self.chang_type == 'bank':
             self._bank_account_change_other_pay(Asset, chang_before_cost, chang_before_depreciation_number)
-        elif self.chang_cost > 0 and self.chang_type == 'account':
+        elif self.chang_cost != 0 and self.chang_type == 'account':
+            # 报错
+            if self.account_credit:
+                code = self.account_credit.code
+                print(code)
+                if code[:4] in error_code:
+                    raise UserError(u'您选择的类型和科目不匹配，请重新选择。')
             self._construction_change_voucher(Asset, chang_before_cost, chang_before_depreciation_number)
-        return True
 
+        # print (self.chang_date, self.period_id.id, chang_before_depreciation_number, self.change_reason, Asset.depreciation_number, Asset.id)
+
+        if self.chang_cost == 0 and self.chang_depreciation_number:
+            self.env['chang.line'].create({'date': self.chang_date, 'period_id': self.period_id.id,
+                                       'chang_before': chang_before_depreciation_number,
+                                       'change_reason': self.change_reason,
+                                       'chang_after': Asset.depreciation_number, 'chang_name': u'折旧期间变更',
+                                       'order_id': Asset.id, 'chang_other_money ': False
+                                       })
+        '''累计折旧变更不为空时，生成凭证和变更记录'''
+        if self.depreciation_previous_change:
+            vals = {}
+            vouch_obj = self.env['voucher'].create({'date': self.chang_date,
+                                                    'ref': '%s,%s' % (Asset._name, Asset.id),
+                                                    'gen_state': True})
+            Asset.write({'voucher_id': vouch_obj.id})
+            vals.update({'vouch_obj_id': vouch_obj.id, 'string': Asset.name, 'name': u'累计折旧',
+                         'amount': self.depreciation_previous_change, 'credit_account_id': Asset.account_accumulated_depreciation.id,
+                         'debit_account_id': Asset.account_depreciation.id,
+                         'buy_tax_amount': False
+                         })
+            self.env['money.invoice'].create_voucher_line(vals)
+            vouch_obj.voucher_done()
+            self.env['chang.line'].create({'date': self.chang_date, 'period_id': self.period_id.id,
+                                           'chang_before': Asset.cost_depreciation,
+                                           'change_reason': self.change_reason,
+                                           'chang_after': sum([l.cost_depreciation for l in Asset.line_ids]) + self.depreciation_previous_change, 'chang_name': u'累计折旧变更',
+                                           'order_id': Asset.id, 'change_vourch': vouch_obj.id
+                                               })
+            '''当累计折旧变更不为空时生成折旧记录'''
+            self.env['asset.line'].create({'voucher_number': vouch_obj.id,
+                                          'cost_depreciation':Asset.cost_depreciation,
+                                          'date': self.chang_date,
+                                          'order_id':Asset.id,
+                                          'code':Asset.code,
+                                          'name':Asset.name,
+                                          'period_id': self.period_id.id,
+                                          'no_depreciation' : Asset.not_depreciation
+                                          })
+
+        return True
 
     @api.one
     def _bank_account_change_other_pay(self, Asset, chang_before_cost, chang_before_depreciation_number):
@@ -791,7 +868,7 @@ class CreateChangWizard(models.TransientModel):
     def _construction_change_voucher(self, Asset, chang_before_cost, chang_before_depreciation_number):
         ''' 贷方科目选择在建工程，直接生成凭证 '''
         vals = {}
-        vouch_obj = self.env['voucher'].create({'date': self.chang_date, 'ref': '%s,%s' % (Asset._name, Asset.id)})
+        vouch_obj = self.env['voucher'].create({'date': self.chang_date, 'ref': '%s,%s' % (Asset._name, Asset.id),'gen_state': True})
         Asset.write({'voucher_id': vouch_obj.id})
         vals.update({'vouch_obj_id': vouch_obj.id, 'string': Asset.name, 'name': u'固定资产',
                      'amount': self.chang_cost + self.chang_tax, 'credit_account_id': self.account_credit.id,
@@ -802,7 +879,8 @@ class CreateChangWizard(models.TransientModel):
         vouch_obj.voucher_done()
 
         # 记录变更历史 - 原值变更
-        self.env['chang.line'].create({'date': self.chang_date, 'period_id': self.period_id.id,
+        if self.chang_cost:
+            self.env['chang.line'].create({'date': self.chang_date, 'period_id': self.period_id.id,
                                        'chang_before': chang_before_cost,
                                        'change_reason': self.change_reason,
                                        'chang_after': Asset.cost, 'chang_name': u'原值变更',

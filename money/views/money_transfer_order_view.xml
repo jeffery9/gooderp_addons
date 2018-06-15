@@ -43,8 +43,8 @@
                         </group>
                         <field name="line_ids">
                             <tree string="Money Transfer Order Lines" editable="bottom">
-                                <field name="out_bank_id"/>
-                                <field name="in_bank_id"/>
+                                <field name="out_bank_id" options="{'no_open': True, 'no_create': True}"/>
+                                <field name="in_bank_id"  options="{'no_open': True, 'no_create': True}"/>
                                 <field name="currency_amount" sum="外币合计"
                                 	 groups='finance.group_multi_currency'/>
                                 <field name="amount" sum="合计"/>

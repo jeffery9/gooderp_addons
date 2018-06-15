@@ -73,7 +73,8 @@ class MoneyTransferOrder(models.Model):
         if not self.line_ids:
             raise UserError('请先输入转账金额')
         decimal_amount = self.env.ref('core.decimal_amount')
-        for line in self.line_ids:
+        for line in self.line_ids.with_context(modify_from_webclient=
+                                      True):
             company_currency_id = self.env.user.company_id.currency_id.id
             out_currency_id = line.out_bank_id.account_id.currency_id.id or company_currency_id
             in_currency_id = line.in_bank_id.account_id.currency_id.id or company_currency_id
@@ -135,8 +136,10 @@ class MoneyTransferOrder(models.Model):
                     raise UserError('转入账户余额不足。\n转入账户余额:%s 本次转出金额:%s'
                                     % (line.in_bank_id.balance, line.amount))
                 else:
-                    line.in_bank_id.balance -= line.amount
-                    line.out_bank_id.balance += line.amount
+                    line.in_bank_id.with_context(modify_from_webclient=
+                                      True).balance -= line.amount
+                    line.out_bank_id.with_context(modify_from_webclient=
+                                      True).balance += line.amount
 
         voucher = self.voucher_id
         self.write({

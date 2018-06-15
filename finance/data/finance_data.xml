@@ -94,6 +94,10 @@
             <field name='balance_directions'>in</field>
             <field name='source'>init</field>
             <field name='account_type'>normal</field>
+            <field name='restricted_debit'>true</field>
+            <field name='restricted_debit_msg'>涉及资金类的会计凭证由出纳记录日记账后自动生成</field>
+            <field name='restricted_credit'>true</field>
+            <field name='restrict_credit_msg'>涉及资金类的会计凭证由出纳记录日记账后自动生成</field>
         </record>
         <record id="init_account_1002" model='finance.account'>
             <field name='code'>1002</field>
@@ -102,6 +106,10 @@
             <field name='balance_directions'>in</field>
             <field name='source'>init</field>
             <field name='account_type'>normal</field>
+            <field name='restricted_debit'>true</field>
+            <field name='restricted_debit_msg'>涉及资金类的会计凭证由出纳记录日记账后自动生成</field>
+            <field name='restricted_credit'>true</field>
+            <field name='restrict_credit_msg'>涉及资金类的会计凭证由出纳记录日记账后自动生成</field>
         </record>
         <record id="init_account_1009" model='finance.account'>
             <field name='code'>1009</field>
@@ -110,6 +118,10 @@
             <field name='balance_directions'>in</field>
             <field name='source'>init</field>
             <field name='account_type'>normal</field>
+            <field name='restricted_debit'>true</field>
+            <field name='restricted_debit_msg'>涉及资金类的会计凭证由出纳记录日记账后自动生成</field>
+            <field name='restricted_credit'>true</field>
+            <field name='restrict_credit_msg'>涉及资金类的会计凭证由出纳记录日记账后自动生成</field>
         </record>
         <record id="init_account_1101" model='finance.account'>
             <field name='code'>1101</field>

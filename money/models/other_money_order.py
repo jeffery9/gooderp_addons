@@ -50,9 +50,12 @@ class OtherMoneyOrder(models.Model):
             values.update(
                 {'name': self.env['ir.sequence'].next_by_code('other.pay.order')})
 
-        return super(OtherMoneyOrder, self).create(values)
+        result = super(OtherMoneyOrder, self).create(values)
 
+        if len(result.line_ids.ids) > 1:
+            raise UserError(u"日记账明细允许记录-行日记账明细！")
 
+        return result
     @api.one
     @api.depends('line_ids.amount', 'line_ids.tax_amount')
     def _compute_total_amount(self):
@@ -64,9 +67,12 @@ class OtherMoneyOrder(models.Model):
     @api.depends('date','bank_id')
     def _compute_rate_silent(self):
         ''' 根据入账日期获取期间，用于生成凭证 '''
-        if self.bank_id and self.bank_id.currency_id:
+        if self.bank_id.with_context(modify_from_webclient=
+                                      True) and self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id:
             self.rate_silent = self.env['res.currency'].get_rate_silent(
-                        self.date, self.bank_id.currency_id.id)
+                        self.date, self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id.id)
         if not self.rate_silent:
             self.rate_silent = 1
 
@@ -155,21 +161,29 @@ class OtherMoneyOrder(models.Model):
         #如果此单据状态为DONE了，就不要再执行了
         if self.state == 'done':
             return True
-        if float_compare(self.total_amount, 0, 3) <= 0:
-            raise UserError(u'金额应该大于0。\n金额:%s' % self.total_amount)
-        if not self.bank_id.account_id:
-            raise UserError(u'请配置%s的会计科目' % (self.bank_id.name))
+        # if float_compare(self.total_amount, 0, 3) <= 0:
+        #     raise UserError(u'金额应该大于0。\n金额:%s' % self.total_amount)
+        if not self.bank_id.with_context(modify_from_webclient=
+                                      True).account_id:
+            raise UserError(u'请配置%s的会计科目' % (self.bank_id.with_context(modify_from_webclient=
+                                      True).name))
 
         # 根据单据类型更新账户余额
         if self.type == 'other_pay':
             decimal_amount = self.env.ref('core.decimal_amount')
-            if float_compare(self.bank_id.balance, self.total_amount, decimal_amount.digits) == -1:
+            if float_compare(self.bank_id.with_context(modify_from_webclient=
+                                      True).balance, self.total_amount, decimal_amount.digits) == -1:
                 raise UserError(u'账户余额不足。\n账户余额:%s 本次支出金额:%s' %
-                                (self.bank_id.balance, self.total_amount))
-            self.bank_id.balance -= self.total_amount
+                                (self.bank_id.with_context(modify_from_webclient=
+                                      True).balance, self.total_amount))
+            self.bank_id.with_context(modify_from_webclient=
+                                      True).balance -= self.total_amount
         else:
-            self.bank_id.balance += self.total_amount
-
+            self.bank_id.with_context(modify_from_webclient=
+                                      True).balance += self.total_amount
+            if self.type == 'other_get':
+                self.bank_id.with_context(no_execute="0", modify_from_webclient=
+                                      True).init_balance = self.total_amount
         # 创建凭证并审核非初始化凭证
         vouch_obj = self.create_voucher()
         return self.write({
@@ -183,13 +197,17 @@ class OtherMoneyOrder(models.Model):
         self.ensure_one()
         # 根据单据类型更新账户余额
         if self.type == 'other_pay':
-            self.bank_id.balance += self.total_amount
+            self.bank_id.with_context(modify_from_webclient=
+                                      True).balance += self.total_amount
         else:
             decimal_amount = self.env.ref('core.decimal_amount')
-            if float_compare(self.bank_id.balance, self.total_amount, decimal_amount.digits) == -1:
+            if float_compare(self.bank_id.with_context(modify_from_webclient=
+                                      True).balance, self.total_amount, decimal_amount.digits) == -1:
                 raise UserError(u'账户余额不足。\n账户余额:%s 本次支出金额:%s' %
-                                (self.bank_id.balance, self.total_amount))
-            self.bank_id.balance -= self.total_amount
+                                (self.bank_id.with_context(modify_from_webclient=
+                                      True).balance, self.total_amount))
+            self.bank_id.with_context(modify_from_webclient=
+                                      True).balance -= self.total_amount
 
         voucher = self.voucher_id
         self.write({
@@ -204,13 +222,17 @@ class OtherMoneyOrder(models.Model):
             vouch_obj = self.env['voucher'].search([('id', '=', voucher.id)])
             vouch_obj_lines = self.env['voucher.line'].search([
                 ('voucher_id', '=', vouch_obj.id),
-                ('account_id', '=', self.bank_id.account_id.id),
+                ('account_id', '=', self.bank_id.with_context(modify_from_webclient=
+                                      True).account_id.id),
                 ('init_obj', '=', 'other_money_order-%s' % (self.id))])
             for vouch_obj_line in vouch_obj_lines:
                 vouch_obj_line.unlink()
         else:
             voucher.unlink()
-
+        if self.type == 'other_get':
+            self.bank_id.with_context(modify_from_webclient=
+                                      True).with_context(no_execute="0", modify_from_webclient=
+                                      True).init_balance = 0
         return True
 
     @api.multi
@@ -218,8 +240,10 @@ class OtherMoneyOrder(models.Model):
         """创建凭证并审核非初始化凭证"""
         init_obj = ''
         # 初始化单的话，先找是否有初始化凭证，没有则新建一个
-        if self.bank_id.currency_id:
-            rate_silent = self.env['res.currency'].get_rate_silent(self.date , self.bank_id.currency_id.id)
+        if self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id:
+            rate_silent = self.env['res.currency'].get_rate_silent(self.date , self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id.id)
         else:
             rate_silent = 1
         if self.is_init:
@@ -258,17 +282,20 @@ class OtherMoneyOrder(models.Model):
             vals.update({'vouch_obj_id': vouch_obj.id, 'name': self.name, 'note': line.note or '',
                          'credit_auxiliary_id': line.auxiliary_id.id,
                          'credit_account_id': line.category_id.account_id.id,
-                         'debit_account_id': self.bank_id.account_id.id,
+                         'debit_account_id': self.bank_id.with_context(modify_from_webclient=
+                                      True).account_id.id,
                          'partner_credit': self.partner_id.id, 'partner_debit': '',
                          'sell_tax_amount': line.tax_amount or 0,
                          'init_obj': init_obj,
                          })
-            if self.bank_id.currency_id.id:
+            if self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id.id:
                 amount = (line.amount + line.tax_amount) * rate_silent
                 currency_amount = line.amount + line.tax_amount
                 vals.update({
                          'amount': amount,
-                         'currency_id': self.bank_id.currency_id.id,
+                         'currency_id': self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id.id,
                          'currency_amount': currency_amount,
                          'rate_silent': rate_silent,
                          'total_amount':total_amount,
@@ -329,21 +356,24 @@ class OtherMoneyOrder(models.Model):
 
             vals.update({'vouch_obj_id': vouch_obj.id, 'name': self.name, 'note': line.note or '',
                          'debit_auxiliary_id': line.auxiliary_id.id,
-                         'credit_account_id': self.bank_id.account_id.id,
+                         'credit_account_id': self.bank_id.with_context(modify_from_webclient=
+                                      True).account_id.id,
                          'debit_account_id': line.category_id.account_id.id, 'partner_credit': '',
                          'partner_debit': self.partner_id.id,
                          'buy_tax_amount': line.tax_amount or 0,
                          })
-            if self.bank_id.currency_id.id:
+            if self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id.id:
                 vals.update({
                              'amount': (line.amount + line.tax_amount) * rate_silent,
-                             'currency_id': self.bank_id.currency_id.id,
-                             'currency_amount': abs(line.amount + line.tax_amount),
+                             'currency_id': self.bank_id.with_context(modify_from_webclient=
+                                      True).currency_id.id,
+                             'currency_amount': (line.amount + line.tax_amount),
                              'rate_silent': rate_silent,
                              })
             else:
                 vals.update({
-                    'amount': abs(line.amount + line.tax_amount),
+                    'amount': (line.amount + line.tax_amount),
                 })
             # 借方行
             self.env['voucher.line'].create({

@@ -34,39 +34,12 @@ class CheckoutWizard(models.TransientModel):
 
     @api.multi
     def button_checkout(self):
-        # #固定资产折旧
-        # asset_wizard = self.env['create.depreciation.wizard'].with_context({'no_error': True}).create({'date': self.date})
-        # asset_wizard.create_depreciation()
-        # # 月末结汇
-        # exchange_wizard = self.env['create.exchange.wizard'].with_context({'no_error': True}).create({'date': self.date})
-        # exchange_wizard.create_exchange()
-        self.ensure_one()
-        fixed_assets = self.env['asset'].search([
-            ('no_depreciation', '=', False),  # 提折旧的
-            ('state', '=', 'done'),  # 已确认
-            ('period_id', '!=', self.period_id.id)
-        ])
-
-        depreciations = self.env['asset.line'].search([('period_id', '!=', self.period_id.id)])
-
-        if len(depreciations) != len(fixed_assets):
-            raise UserError( u'固定资产没有计提折旧！')
-
-        depreciation_voucher = self.env['voucher.line'].search([('period_id', '=', self.period_id.id), ('name', '=',
-                                                                                                        u'固定资产折旧')])
-        if 'draft' in depreciation_voucher.mapped('state'):
-            raise UserError( u'计提折旧凭证没有确认！')
-
-        need_create_exchange_voucher = False
-        if self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
-                                               ('currency_id', '!=', False), ('exchange', '=', True)]):
-            need_create_exchange_voucher = True
-
-        vouch_obj = self.env['voucher'].search(
-            [('is_exchange', '=', True), ('period_id', '=', self.period_id.id)], order="create_date desc", limit=1)
-        if need_create_exchange_voucher and not vouch_obj:
-            raise UserError(u'请先完成期末调汇作业！')
-
+        #固定资产折旧
+        asset_wizard = self.env['create.depreciation.wizard'].with_context({'no_error': True}).create({'date': self.date})
+        asset_wizard.create_depreciation()
+        # 月末结汇
+        exchange_wizard = self.env['create.exchange.wizard'].with_context({'no_error': True}).create({'date': self.date})
+        exchange_wizard.create_exchange()
         ''' 月末结账：结账 按钮 '''
         for balance in self:
             if balance.period_id:

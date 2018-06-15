@@ -9,7 +9,7 @@ from odoo.exceptions import UserError, ValidationError
 class Partner(models.Model):
     '''查看业务伙伴对账单'''
     _inherit = 'partner'
-
+    no_execute = '';
     def _init_source_create(self, name, partner_id, category_id, is_init, date,
                             amount, reconciled, to_reconcile, date_due, state):
         if not float_is_zero(amount, 2):
@@ -98,7 +98,7 @@ class Partner(models.Model):
 class BankAccount(models.Model):
     '''查看账户对账单'''
     _inherit = 'bank.account'
-
+    no_execute = ''
     @api.multi
     def write(self, vals):
 
@@ -115,6 +115,8 @@ class BankAccount(models.Model):
 
     @api.one
     def _set_init_balance(self):
+        if self.env.context.get("no_execute") == "0":
+            return
         """
         如果  init_balance 字段里面有值则 进行 一系列的操作。
         :return:
@@ -149,7 +151,8 @@ class BankAccount(models.Model):
             other_money_init.other_money_done()
         else:
             other_money_id = self.env['other.money.order'].search([
-                ('bank_id', '=', self.id),
+                ('bank_id', '=', self.id.with_context(modify_from_webclient=
+                                      True)),
                 ('is_init', '=', True)])
             if other_money_id:
                 other_money_id.other_money_draft()

@@ -220,7 +220,7 @@
 
         <record id="money.total_8" model="cash.flow.template">
             <field name="name">现金流出小计</field>
-            <field name="line_num" eval="50"/>
+            <field name="line_num" eval="58"/>
             <field name="line_type">lines</field>
             <field name="plus_ids" eval="[(6, 0, [
             ref('money.cft_51'),
@@ -229,7 +229,7 @@
         </record>
 
         <record id="money.total_9" model="cash.flow.template">
-            <field name="name">投资活动产生的现金流量净额</field>
+            <field name="name">筹资活动产生的现金流量净额</field>
             <field name="line_num" eval="59"/>
             <field name="line_type">lines</field>
             <field name="plus_ids" eval="[(6, 0, [
