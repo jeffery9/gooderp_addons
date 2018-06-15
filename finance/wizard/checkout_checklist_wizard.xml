@@ -7,53 +7,30 @@
             <field name="arch" type="xml">
                 <form string="期末结转" class="oe_form_configuration">
                     <header>
-                        
                     </header>
-                    <group>
-                        <group>
-                            <field name='period_id' options="{'no_create': True, 'no_open': True, 'no_create_edit': True}"/>
-                        </group>
+                    <group >
+                        <field name='period_id' options="{'no_create': True, 'no_open': True, 'no_create_edit': True}" />
                     </group>
                     <group string="风险列表">
-                        <field name="check_voucher_depreciation" invisible="1" />
-                        <field name="check_voucher_exchange" invisible="1" />
-                        <field name="check_voucher_profit" invisible="1" />
-                        <field name="check_trial_balance" invisible="1" />
-                        <field name="check_balance_sheet" invisible="1" />
-                        <field name="check_account_cash" invisible="1" />
-                        <field name="check_account_bank" invisible="1" />
-                        <field name="check_account_good" invisible="1" />
-                        <field name="check_account_fixed_asset" invisible="1" />
-                        <field name="check_account_intangible_asset" invisible="1" />
-<!--                         <field name="msg_voucher_depreciation" attrs="{ 'invisible': [('check_voucher_depreciation','=', True)]  }" />
-                        <field name="msg_voucher_exchange" attrs="{ 'invisible': [('check_voucher_exchange','=', True)]  }" />
-                        <field name="msg_voucher_profit" attrs="{ 'invisible': [('check_voucher_profit','=', True)]  }" />
-                        <field name="msg_trial_balance" attrs="{ 'invisible': [('check_trial_balance','=', True)]  }" />
-                        <field name="msg_balance_sheet" attrs="{ 'invisible': [('check_balance_sheet','=', True)]  }" />
-                        <field name="msg_account_cash" attrs="{ 'invisible': [('check_account_cash','=', True)]  }" />
-                        <field name="msg_account_bank" attrs="{ 'invisible': [('check_account_bank','=', True)]  }" />
-                        <field name="msg_account_good" attrs="{ 'invisible': [('check_account_good','=', True)]  }" />
-                        <field name="msg_account_fixed_asset" attrs="{ 'invisible': [('check_account_fixed_asset','=', True)]  }" />
-                        <field name="msg_account_intangible_asset" attrs="{ 'invisible': [('check_account_intangible_asset','=', True)]  }" /> -->
-
-                        <field name="msg_voucher_depreciation"  />
-                        <field name="msg_voucher_exchange"  />
-                        <field name="msg_voucher_profit"  />
-                        <field name="msg_trial_balance"  />
-                        <field name="msg_balance_sheet"  />
-                        <field name="msg_account_cash"  />
-                        <field name="msg_account_bank"  />
-                        <field name="msg_account_good"  />
-                        <field name="msg_account_fixed_asset"  />
-                        <field name="msg_account_intangible_asset"  />
+                        <field name="msg_voucher_depreciation" />
+                        <field name="msg_voucher_exchange" />
+                        <field name="msg_voucher_profit" />
+                        <field name="msg_trial_balance" />
+                        <field name="msg_balance_sheet" />
+                        <field name="msg_account_cash" />
+                        <field name="msg_account_bank" />
+                        <field name="msg_account_good" />
+                        <field name="msg_account_fixed_asset" />
+                        <field name="msg_account_intangible_asset" />
+                        <field name="show_button" invisible="1"/>
                     </group>
-                    <group string="检查结论">
+                    <group string="检查结论" colspan="4">
                         <field name="result" />
                     </group>
                     <footer>
                         <!-- <button string="关闭" special="cancel" class="oe_link" /> -->
-                        <button name="check_items" string="检查风险" type="object" />
-                        <button string="结账" name="close_period" type="object" class="oe_highlight" attrs="{ 'invisible': [('result','=','error')]  }"/>
+                        <button name="check_items" string="检查风险" type="object" attrs="{ 'invisible': [('show_button','=', False)]  }"/>
+                        <button string="结账" name="close_period" type="object" class="oe_highlight" attrs="{ 'invisible': [('result','in',('error', 'blank'))]  }" />
                     </footer>
                 </form>
             </field>

@@ -37,80 +37,38 @@ class CheckoutChecklist(models.TransientModel):
     check_account_intangible_asset = fields.Boolean(string=u'无形资产', readonly=True)
 
     msg_voucher_depreciation = fields.Selection(
-        string=u'计提折旧', selection=[('ok', u'正常'), ('error', u'未结转')], default='ok', readonly=True)
+        string=u'计提折旧', selection=[('ok', u'正常'), ('error', u'未结转'), ('blank', u'')], default='blank', readonly=True)
     msg_voucher_exchange = fields.Selection(
-        string=u'期末调汇', selection=[('ok', u'正常'), ('error', u'未结转')], default='ok', readonly=True)
+        string=u'期末调汇', selection=[('ok', u'正常'), ('error', u'未结转'), ('blank', u'')], default='blank', readonly=True)
     msg_voucher_profit = fields.Selection(
-        string=u'收支结转', selection=[('ok', u'正常'), ('error', u'未结转')], default='ok', readonly=True)
+        string=u'收支结转', selection=[('ok', u'正常'), ('error', u'未结转'), ('blank', u'')], default='blank', readonly=True)
     msg_trial_balance = fields.Selection(
-        string=u'试算平衡', selection=[('ok', u'正常'), ('error', u'不平衡')], default='ok', readonly=True)
+        string=u'试算平衡', selection=[('ok', u'正常'), ('error', u'不平衡'), ('blank', u'')], default='blank', readonly=True)
     msg_balance_sheet = fields.Selection(
-        string=u'资产负债表', selection=[('ok', u'正常'), ('error', u'不平衡')], default='ok', readonly=True)
+        string=u'资产负债表', selection=[('ok', u'正常'), ('error', u'不平衡'), ('blank', u'')], default='blank', readonly=True)
     msg_account_cash = fields.Selection(
-        string=u'现金', selection=[('ok', u'正常'), ('error', u'有赤字')], default='ok', readonly=True)
+        string=u'现金', selection=[('ok', u'正常'), ('error', u'有赤字'), ('blank', u'')], default='blank', readonly=True)
     msg_account_bank = fields.Selection(
-        string=u'银行存款', selection=[('ok', u'正常'), ('error', u'有赤字')], default='ok', readonly=True)
+        string=u'银行存款', selection=[('ok', u'正常'), ('error', u'有赤字'), ('blank', u'')], default='blank', readonly=True)
     msg_account_good = fields.Selection(
-        string=u'存货', selection=[('ok', u'正常'), ('error', u'存货 –  存货跌价准备 < 0')], default='ok', readonly=True)
+        string=u'存货',
+        selection=[('ok', u'正常'), ('error', u'存货 –  存货跌价准备 < 0'), ('blank', u'')],
+        default='blank',
+        readonly=True)
     msg_account_fixed_asset = fields.Selection(
-        string=u'固定资产', selection=[('ok', u'正常'), ('error', u'固定资产 – 累计折旧 < 0')], default='ok', readonly=True)
+        string=u'固定资产',
+        selection=[('ok', u'正常'), ('error', u'固定资产 – 累计折旧 < 0'), ('blank', u'')],
+        default='blank',
+        readonly=True)
     msg_account_intangible_asset = fields.Selection(
-        string=u'无形资产', selection=[('ok', u'正常'), ('error', u'有赤字')], default='ok', readonly=True)
+        string=u'无形资产', selection=[('ok', u'正常'), ('error', u'有赤字'), ('blank', u'')], default='blank', readonly=True)
 
     result = fields.Selection(
-        string=u'结果', selection=[('ok', u'检查通过，可以结账'), ('error', u'检查未通过，请核实后再结账')], compute='_compute_result')
+        string=u'结果', selection=[('ok', u'检查通过，可以结账'), ('error', u'检查未通过，请核实后再结账'), ('blank', u'')], default='blank', readonly=True )
 
-    @api.depends('check_voucher_depreciation', 'check_voucher_exchange', 'check_voucher_profit', 'check_trial_balance',
-                 'check_balance_sheet', 'check_account_cash', 'check_account_bank', 'check_account_good',
-                 'check_account_fixed_asset', 'check_account_intangible_asset')
-    def _compute_result(self):
-        for record in self:
-            ok = record.check_voucher_depreciation and record.check_voucher_exchange and record.check_voucher_profit and record.check_trial_balance and record.check_balance_sheet and record.check_account_cash and record.check_account_bank and record.check_account_good and record.check_account_fixed_asset and record.check_account_intangible_asset
-
-            if ok:
-                record.result = 'ok'
-            else:
-                record.result = 'error'
-
-    @api.model
-    def default_get(self, fields):
-        res = super(CheckoutChecklist, self).default_get(fields)
-
-        check_voucher_depreciation = False
-        check_voucher_exchange = False
-        check_voucher_profit = False
-        check_trial_balance = False
-        check_balance_sheet = False
-        check_account_cash = False
-        check_account_bank = False
-        check_account_good = False
-        check_account_fixed_asset = False
-        check_account_intangible_asset = False
-
-        res.update({
-            'check_voucher_depreciation': check_voucher_depreciation,
-            'check_voucher_exchange': check_voucher_exchange,
-            'check_voucher_profit': check_voucher_profit,
-            'check_trial_balance': check_trial_balance,
-            'check_balance_sheet': check_balance_sheet,
-            'check_account_cash': check_account_cash,
-            'check_account_bank': check_account_bank,
-            'check_account_good': check_account_good,
-            'check_account_fixed_asset': check_account_fixed_asset,
-            'check_account_intangible_asset': check_account_intangible_asset,
-            'msg_voucher_depreciation': 'error' if not check_voucher_depreciation else 'ok',
-            'msg_voucher_exchange': 'error' if not check_voucher_exchange else 'ok',
-            'msg_voucher_profit': 'error' if not check_voucher_profit else 'ok',
-            'msg_trial_balance': 'error' if not check_trial_balance else 'ok',
-            'msg_balance_sheet': 'error' if not check_balance_sheet else 'ok',
-            'msg_account_cash': 'error' if not check_account_cash else 'ok',
-            'msg_account_bank': 'error' if not check_account_bank else 'ok',
-            'msg_account_good': 'error' if not check_account_good else 'ok',
-            'msg_account_fixed_asset': 'error' if not check_account_fixed_asset else 'ok',
-            'msg_account_intangible_asset': 'error' if not check_account_intangible_asset else 'ok',
-        })
-
-        return res
+    show_button = fields.Boolean(
+        string=u'Show Button',
+    )
 
     @api.multi
     def check_items(self):
@@ -138,6 +96,13 @@ class CheckoutChecklist(models.TransientModel):
         self._onchange_check_account_fixed_asset()
         self._onchange_check_account_intangible_asset()
 
+        ok = self.check_voucher_depreciation and self.check_voucher_exchange and self.check_voucher_profit and self.check_trial_balance and self.check_balance_sheet and self.check_account_cash and self.check_account_bank and self.check_account_good and self.check_account_fixed_asset and self.check_account_intangible_asset
+
+        if ok:
+            self.result = 'ok'
+        else:
+            self.result = 'error'
+
         view = self.env.ref('finance.checkout_checklist_wizard_form')
 
         return {
@@ -151,70 +116,60 @@ class CheckoutChecklist(models.TransientModel):
             'target': 'new'
         }
 
-    @api.onchange('check_voucher_depreciation')
     def _onchange_check_voucher_depreciation(self):
         if not self.check_voucher_depreciation:
             self.msg_voucher_depreciation = 'error'
         else:
             self.msg_voucher_depreciation = 'ok'
 
-    @api.onchange('check_voucher_exchange')
     def _onchange_check_voucher_exchange(self):
         if not self.check_voucher_exchange:
             self.msg_voucher_exchange = 'error'
         else:
             self.msg_voucher_exchange = 'ok'
 
-    @api.onchange('check_voucher_profit')
     def _onchange_check_voucher_profit(self):
         if not self.check_voucher_profit:
             self.msg_voucher_profit = 'error'
         else:
             self.msg_voucher_profit = 'ok'
 
-    @api.onchange('check_trial_balance')
     def _onchange_check_trial_balance(self):
         if not self.check_trial_balance:
             self.msg_trial_balance = 'error'
         else:
             self.msg_trial_balance = 'ok'
 
-    @api.onchange('check_balance_sheet')
     def _onchange_check_balance_sheet(self):
         if not self.check_balance_sheet:
             self.msg_balance_sheet = 'error'
         else:
             self.msg_balance_sheet = 'ok'
 
-    @api.onchange('check_account_cash')
     def _onchange_check_account_cash(self):
         if not self.check_account_cash:
             self.msg_account_cash = 'error'
         else:
             self.msg_account_cash = 'ok'
 
-    @api.onchange('check_account_bank')
     def _onchange_check_account_bank(self):
         if not self.check_account_bank:
             self.msg_account_bank = 'error'
         else:
             self.msg_account_bank = 'ok'
 
-    @api.onchange('check_account_good')
     def _onchange_check_account_good(self):
         if not self.check_account_good:
             self.msg_account_good = 'error'
         else:
             self.msg_account_good = 'ok'
 
-    @api.onchange('check_account_fixed_asset')
     def _onchange_check_account_fixed_asset(self):
         if not self.check_account_fixed_asset:
             self.msg_account_fixed_asset = 'error'
         else:
             self.msg_account_fixed_asset = 'ok'
 
-    @api.onchange('check_account_intangible_asset')
     def _onchange_check_account_intangible_asset(self):
         if not self.check_account_intangible_asset:
             self.msg_account_intangible_asset = 'error'
@@ -223,7 +178,29 @@ class CheckoutChecklist(models.TransientModel):
 
     @api.onchange('period_id')
     def _onchange_peroid_id(self):
+        self.msg_voucher_depreciation = 'blank'
+        self.msg_voucher_exchange = 'blank'
+        self.msg_voucher_profit = 'blank'
+        self.msg_trial_balance = 'blank'
+        self.msg_balance_sheet = 'blank'
+        self.msg_account_cash = 'blank'
+        self.msg_account_bank = 'blank'
+        self.msg_account_good = 'blank'
+        self.msg_account_fixed_asset = 'blank'
+        self.msg_account_intangible_asset = 'blank'
+        self.result = 'blank'
+
         if self.period_id:
+            self.show_button = True
+            last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(self.period_id)
+            if last_period and last_period.is_closed == False:
+                self.show_button =False
+                return {
+                        'warning': {
+                            'title': u'错误',
+                            'message': u'期间%s未完成结账！请检查'%last_period.name
+                        }
+                    }
             trial_balance_items = self.env['trial.balance'].search([('period_id', '=', self.period_id.id)])
             account_ids = self.env['finance.account'].search([])
             if len(trial_balance_items) != len(account_ids):
