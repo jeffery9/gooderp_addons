@@ -241,10 +241,21 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
         if not self.period_id:
             return False
+        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
+                    self.period_id)
+        frist_day_this_period, last_day_this_period= self.env['finance.period'].get_period_month_date_range(self.period_id)
+        frist_day_last_period, last_day_last_period= self.env['finance.period'].get_period_month_date_range(last_period)
+         
         need_create_exchange_voucher = False
-        if self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
-                                               ('currency_id', '!=', False), ('exchange', '=', True)]):
-            need_create_exchange_voucher = True
+        account_ids = self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
+                                               ('currency_id', '!=', False), ('exchange', '=', True)])
+        for account_id in account_ids:
+            rate_this_month=account_id.currency_id.with_context(date=last_day_this_period)._compute_current_rate()
+            rate_last_month=account_id.currency_id.with_context(date=last_day_last_period)._compute_current_rate()
+            if rate_last_month != rate_last_month:
+                need_create_exchange_voucher = True
+
+            continue
 
         vouch_obj = self.env['voucher'].search(
             [('is_exchange', '=', True), ('period_id', '=', self.period_id.id)], order="create_date desc", limit=1)
@@ -302,9 +313,9 @@ class CheckoutChecklist(models.TransientModel):
         # create_balance_sheet_wizard.create_balance_sheet()
         balance_sheet_lines = self.env['balance.sheet'].search([])
         last_line = balance_sheet_lines[-1]
-        if (datetime.utcnow() -
-                datetime.strptime(last_line.write_date, DEFAULT_SERVER_DATETIME_FORMAT)).seconds > 8 * 3600:
-            raise UserError(u'资产负债表是8小时前更新，太旧了，请至 菜单 账簿 > 资产负债表 更新资产负债表！')
+        # if (datetime.utcnow() -
+        #         datetime.strptime(last_line.write_date, DEFAULT_SERVER_DATETIME_FORMAT)).seconds > 8 * 3600:
+        #     raise UserError(u'资产负债表是8小时前更新，太旧了，请至 菜单 账簿 > 资产负债表 更新资产负债表！')
 
         if last_line.ending_balance != last_line.ending_balance_two:
             return False

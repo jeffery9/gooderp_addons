@@ -58,15 +58,26 @@ class CheckoutWizard(models.TransientModel):
         if 'draft' in depreciation_voucher.mapped('state'):
             raise UserError( u'计提折旧凭证没有确认！')
 
+        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
+                    self.period_id)
+        frist_day_this_period, last_day_this_period= self.env['finance.period'].get_period_month_date_range(self.period_id)
+        frist_day_last_period, last_day_last_period= self.env['finance.period'].get_period_month_date_range(last_period)
+         
         need_create_exchange_voucher = False
-        if self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
-                                               ('currency_id', '!=', False), ('exchange', '=', True)]):
-            need_create_exchange_voucher = True
+        account_ids = self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
+                                               ('currency_id', '!=', False), ('exchange', '=', True)])
+        for account_id in account_ids:
+            rate_this_month=account_id.currency_id.with_context(date=last_day_this_period)._compute_current_rate()
+            rate_last_month=account_id.currency_id.with_context(date=last_day_last_period)._compute_current_rate()
+            if rate_last_month != rate_last_month:
+                need_create_exchange_voucher = True
+
+            continue
 
         vouch_obj = self.env['voucher'].search(
             [('is_exchange', '=', True), ('period_id', '=', self.period_id.id)], order="create_date desc", limit=1)
         if need_create_exchange_voucher and not vouch_obj:
-            raise UserError(u'请先完成期末调汇作业！')
+            return False
 
         ''' 月末结账：结账 按钮 '''
         for balance in self:
@@ -291,7 +302,7 @@ class CheckoutWizard(models.TransientModel):
                     #     else:
                     #         self.env['finance.period'].create({'year': balance.period_id.year,
                     #                                            'month': str(int(balance.period_id.month) + 1), })
-                    
+
                     # 显示凭证
                     view = self.env.ref('finance.voucher_form')
                     if voucher_line :
