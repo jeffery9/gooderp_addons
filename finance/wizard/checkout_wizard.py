@@ -34,12 +34,23 @@ class CheckoutWizard(models.TransientModel):
 
     @api.multi
     def button_checkout(self):
-        #固定资产折旧
-        asset_wizard = self.env['create.depreciation.wizard'].with_context({'no_error': True}).create({'date': self.date})
-        asset_wizard.create_depreciation()
-        # 月末结汇
-        exchange_wizard = self.env['create.exchange.wizard'].with_context({'no_error': True}).create({'date': self.date})
-        exchange_wizard.create_exchange()
+        # #固定资产折旧
+        # asset_wizard = self.env['create.depreciation.wizard'].with_context({'no_error': True}).create({'date': self.date})
+        # asset_wizard.create_depreciation()
+        # # 月末结汇
+        # exchange_wizard = self.env['create.exchange.wizard'].with_context({'no_error': True}).create({'date': self.date})
+        # exchange_wizard.create_exchange()
+
+        need_create_exchange_voucher = False
+        if self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
+                                               ('currency_id', '!=', False), ('exchange', '=', True)]):
+            need_create_exchange_voucher = True
+
+        vouch_obj = self.env['voucher'].search(
+            [('is_exchange', '=', True), ('period_id', '=', self.period_id.id)], order="create_date desc", limit=1)
+        if need_create_exchange_voucher and not vouch_obj:
+            raise UserError(u'请先完成期末调汇作业！')
+
         ''' 月末结账：结账 按钮 '''
         for balance in self:
             if balance.period_id:
