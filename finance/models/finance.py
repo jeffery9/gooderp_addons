@@ -36,7 +36,6 @@ READONLY_STATES = {
     'done': [('readonly', True)],
 }
 
-unlink_original = models.BaseModel.unlink
 
 class Voucher(models.Model):
     '''新建凭证'''
@@ -44,15 +43,6 @@ class Voucher(models.Model):
     _inherit = ['mail.thread']
     _order = 'period_id, name desc'
     _description = u'会计凭证'
-
-    gen_state = fields.Boolean(u'固定资产变更生成凭证', default=False)
-
-    @api.multi
-    def unlink(self):
-        for line in self:
-            if  line.gen_state:
-                raise UserError(u'不能删除固定资产变更生成凭证')
-            return unlink_original(line)
 
     @api.model
     def _default_voucher_date(self):
