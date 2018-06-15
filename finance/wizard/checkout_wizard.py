@@ -51,24 +51,29 @@ class CheckoutWizard(models.TransientModel):
         depreciations = self.env['asset.line'].search([('period_id', '=', self.period_id.id),('order_id', 'in', fixed_assets.ids), ('origin', '=', 'depreciation')])
 
         if len(depreciations) < len(fixed_assets):
-            return False
+            raise UserError( u'需要进行计提折旧！')
 
         depreciation_voucher = self.env['voucher.line'].search([('period_id', '=', self.period_id.id), ('name', '=',
                                                                                                         u'固定资产折旧')])
         if 'draft' in depreciation_voucher.mapped('state'):
             raise UserError( u'计提折旧凭证没有确认！')
 
-        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
-                    self.period_id)
-        frist_day_this_period, last_day_this_period= self.env['finance.period'].get_period_month_date_range(self.period_id)
-        frist_day_last_period, last_day_last_period= self.env['finance.period'].get_period_month_date_range(last_period)
+        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(self.period_id)
+        frist_day_this_period, last_day_this_period = self.env['finance.period'].get_period_month_date_range(
+            self.period_id)
+        frist_day_last_period = frist_day_this_period
+        last_day_last_period = last_day_this_period
+        if last_period:
+            frist_day_last_period, last_day_last_period = self.env['finance.period'].get_period_month_date_range(
+                last_period)
          
         need_create_exchange_voucher = False
-        account_ids = self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
-                                               ('currency_id', '!=', False), ('exchange', '=', True)])
+        account_ids = self.env['finance.account'].search([('currency_id', '!=',
+                                                           self.env.user.company_id.currency_id.id),
+                                                          ('currency_id', '!=', False), ('exchange', '=', True)])
         for account_id in account_ids:
-            rate_this_month=account_id.currency_id.with_context(date=last_day_this_period)._compute_current_rate()
-            rate_last_month=account_id.currency_id.with_context(date=last_day_last_period)._compute_current_rate()
+            rate_this_month = account_id.currency_id.with_context(date=last_day_this_period)._compute_current_rate()
+            rate_last_month = account_id.currency_id.with_context(date=last_day_last_period)._compute_current_rate()
             if rate_last_month != rate_last_month:
                 need_create_exchange_voucher = True
 
@@ -77,7 +82,7 @@ class CheckoutWizard(models.TransientModel):
         vouch_obj = self.env['voucher'].search(
             [('is_exchange', '=', True), ('period_id', '=', self.period_id.id)], order="create_date desc", limit=1)
         if need_create_exchange_voucher and not vouch_obj:
-            return False
+            raise UserError( u'需要进行期末调汇！')
 
         ''' 月末结账：结账 按钮 '''
         for balance in self:
@@ -275,7 +280,7 @@ class CheckoutWizard(models.TransientModel):
                                     (0, 0, line) for line in voucher_line],
                             }
                             voucher = voucher_obj.create(valus)
-                            voucher.voucher_done()
+                            # voucher.voucher_done()
 
                     # 生成科目余额表
                     trial_wizard = self.env['create.trial.balance.wizard'].create({

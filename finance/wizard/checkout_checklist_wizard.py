@@ -112,6 +112,45 @@ class CheckoutChecklist(models.TransientModel):
 
         return res
 
+    @api.multi
+    def check_items(self):
+        self.ensure_one()
+
+        self.check_voucher_depreciation = self._check_voucher_depreciation()
+        self.check_voucher_exchange = self._check_voucher_exchange()
+        self.check_voucher_profit = self._check_voucher_profit()
+        self.check_trial_balance = self._check_trial_balance()
+        self.check_balance_sheet = self._check_balance_sheet()
+        self.check_account_cash = self._check_account('1001')
+        self.check_account_bank = self._check_account('1002')
+        self.check_account_good = self._check_account_good()
+        self.check_account_fixed_asset = self._check_account_fixed_asset()
+        self.check_account_intangible_asset = self._check_account_intangible_asset()
+
+        self._onchange_check_voucher_depreciation()
+        self._onchange_check_voucher_exchange()
+        self._onchange_check_voucher_profit()
+        self._onchange_check_trial_balance()
+        self._onchange_check_balance_sheet()
+        self._onchange_check_account_cash()
+        self._onchange_check_account_bank()
+        self._onchange_check_account_good()
+        self._onchange_check_account_fixed_asset()
+        self._onchange_check_account_intangible_asset()
+
+        view = self.env.ref('finance.checkout_checklist_wizard_form')
+
+        return {
+            'name': u'月末结账',
+            'view_type': 'form',
+            'view_mode': 'form',
+            'views': [(view.id, 'form')],
+            'res_model': 'checkout.checklist',
+            'type': 'ir.actions.act_window',
+            'res_id': self.id,
+            'target': 'new'
+        }
+
     @api.onchange('check_voucher_depreciation')
     def _onchange_check_voucher_depreciation(self):
         if not self.check_voucher_depreciation:
@@ -184,33 +223,12 @@ class CheckoutChecklist(models.TransientModel):
 
     @api.onchange('period_id')
     def _onchange_peroid_id(self):
-        def set_value(self):
-            self.check_voucher_depreciation = self._check_voucher_depreciation()
-            self.check_voucher_exchange = self._check_voucher_exchange()
-            self.check_voucher_profit = self._check_voucher_profit()
-            self.check_trial_balance = self._check_trial_balance()
-            self.check_balance_sheet = self._check_balance_sheet()
-            self.check_account_cash = self._check_account('1001')
-            self.check_account_bank = self._check_account('1002')
-            self.check_account_good = self._check_account_good()
-            self.check_account_fixed_asset = self._check_account_fixed_asset()
-            self.check_account_intangible_asset = self._check_account_intangible_asset()
-
         if self.period_id:
             trial_balance_items = self.env['trial.balance'].search([('period_id', '=', self.period_id.id)])
             account_ids = self.env['finance.account'].search([])
             if len(trial_balance_items) != len(account_ids):
-                period_id = self.period_id
-                self.period_id = False
-                set_value(self)
-                return {
-                    'warning': {
-                        'title': u'错误',
-                        'message': u'期间%s，没有运行科目余额表，请至菜单 账簿 > 科目余额表，查看科目余额表！' % period_id.name
-                    }
-                }
-
-        set_value(self)
+                trial_balance_wizard = self.env['create.trial.balance.wizard'].create({'period_id': self.period_id.id})
+                trial_balance_wizard.create_trial_balance()
 
     @api.multi
     def _check_voucher_depreciation(self):
@@ -227,7 +245,9 @@ class CheckoutChecklist(models.TransientModel):
             ('period_id', '!=', self.period_id.id)
         ])
 
-        depreciations = self.env['asset.line'].search([('period_id', '=', self.period_id.id),('order_id', 'in', fixed_assets.ids), ('origin', '=', 'depreciation')])
+        depreciations = self.env['asset.line'].search([('period_id', '=', self.period_id.id),
+                                                       ('order_id', 'in', fixed_assets.ids), ('origin', '=',
+                                                                                              'depreciation')])
 
         if len(depreciations) < len(fixed_assets):
             return False
@@ -248,20 +268,22 @@ class CheckoutChecklist(models.TransientModel):
         if self.period_id == self.period_id.get_init_period():
             return True
 
-        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
-                    self.period_id)
-        frist_day_this_period, last_day_this_period= self.env['finance.period'].get_period_month_date_range(self.period_id)
+        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(self.period_id)
+        frist_day_this_period, last_day_this_period = self.env['finance.period'].get_period_month_date_range(
+            self.period_id)
         frist_day_last_period = frist_day_this_period
         last_day_last_period = last_day_this_period
         if last_period:
-            frist_day_last_period, last_day_last_period= self.env['finance.period'].get_period_month_date_range(last_period)
-         
+            frist_day_last_period, last_day_last_period = self.env['finance.period'].get_period_month_date_range(
+                last_period)
+
         need_create_exchange_voucher = False
-        account_ids = self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
-                                               ('currency_id', '!=', False), ('exchange', '=', True)])
+        account_ids = self.env['finance.account'].search([('currency_id', '!=',
+                                                           self.env.user.company_id.currency_id.id),
+                                                          ('currency_id', '!=', False), ('exchange', '=', True)])
         for account_id in account_ids:
-            rate_this_month=account_id.currency_id.with_context(date=last_day_this_period)._compute_current_rate()
-            rate_last_month=account_id.currency_id.with_context(date=last_day_last_period)._compute_current_rate()
+            rate_this_month = account_id.currency_id.with_context(date=last_day_this_period)._compute_current_rate()
+            rate_last_month = account_id.currency_id.with_context(date=last_day_last_period)._compute_current_rate()
             if rate_last_month != rate_last_month:
                 need_create_exchange_voucher = True
 
@@ -321,9 +343,8 @@ class CheckoutChecklist(models.TransientModel):
         if not self.period_id:
             return False
 
-        # create_balance_sheet_wizard = self.env['create.balance.sheet.wizard'].create({ 'period_id': self.period_id.id
-        #     })
-        # create_balance_sheet_wizard.create_balance_sheet()
+        create_balance_sheet_wizard = self.env['create.balance.sheet.wizard'].create({'period_id': self.period_id.id})
+        create_balance_sheet_wizard.create_balance_sheet()
         balance_sheet_lines = self.env['balance.sheet'].search([])
         last_line = balance_sheet_lines[-1]
         # if (datetime.utcnow() -
@@ -401,7 +422,7 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
         if not self.period_id:
             return False
-            
+
         if self.period_id == self.period_id.get_init_period():
             return True
 
@@ -420,23 +441,23 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
 
         # 关闭会计期间
-        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
-                    self.period_id)
+        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(self.period_id)
         self.period_id.is_closed = True
         self.env['dupont'].fill(self.period_id)
         pre_period = last_period
         while pre_period:
             self.env['dupont'].fill(pre_period)
-            pre_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
-                pre_period)
+            pre_period = self.env['create.trial.balance.wizard'].compute_last_period_id(pre_period)
         # 如果下一个会计期间没有，则创建。
-        next_period = self.env['create.trial.balance.wizard'].compute_next_period_id(
-            self.period_id)
+        next_period = self.env['create.trial.balance.wizard'].compute_next_period_id(self.period_id)
         if not next_period:
             if self.period_id.month == '12':
-                self.env['finance.period'].create({'year': str(int(self.period_id.year) + 1),
-                                                   'month': '1', })
+                self.env['finance.period'].create({
+                    'year': str(int(self.period_id.year) + 1),
+                    'month': '1',
+                })
             else:
-                self.env['finance.period'].create({'year': self.period_id.year,
-                                                   'month': str(int(self.period_id.month) + 1), })
-
+                self.env['finance.period'].create({
+                    'year': self.period_id.year,
+                    'month': str(int(self.period_id.month) + 1),
+                })

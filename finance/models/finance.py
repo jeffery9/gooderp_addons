@@ -70,7 +70,8 @@ class Voucher(models.Model):
     @api.one
     @api.depends('date')
     def _compute_period_id(self):
-        self.period_id = self.env['finance.period'].get_period(self.date)
+        self.period_id = self.env['finance.period'].with_context(
+                module_name='checkout_wizard').get_period(self.date)
 
     document_word_id = fields.Many2one(
         'document.word', u'凭证字', ondelete='restrict', required=True,

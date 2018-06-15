@@ -14,7 +14,7 @@
                             <field name='period_id' options="{'no_create': True, 'no_open': True, 'no_create_edit': True}"/>
                         </group>
                     </group>
-                    <group string="检查风险">
+                    <group string="风险列表">
                         <field name="check_voucher_depreciation" invisible="1" />
                         <field name="check_voucher_exchange" invisible="1" />
                         <field name="check_voucher_profit" invisible="1" />
@@ -52,6 +52,7 @@
                     </group>
                     <footer>
                         <!-- <button string="关闭" special="cancel" class="oe_link" /> -->
+                        <button name="check_items" string="检查风险" type="object" />
                         <button string="结账" name="close_period" type="object" class="oe_highlight" attrs="{ 'invisible': [('result','=','error')]  }"/>
                     </footer>
                 </form>
