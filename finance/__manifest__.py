@@ -37,6 +37,7 @@
         'views/res_config_view.xml',
         'views/finance_conf.xml',
         'wizard/checkout_wizard.xml',
+        'wizard/checkout_checklist_wizard.xml',
         'views/finance_view.xml',
         'views/company.xml',
         'views/trial_balance.xml',

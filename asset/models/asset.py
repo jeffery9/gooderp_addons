@@ -813,7 +813,8 @@ class CreateChangWizard(models.TransientModel):
                                           'code':Asset.code,
                                           'name':Asset.name,
                                           'period_id': self.period_id.id,
-                                          'no_depreciation' : Asset.not_depreciation
+                                          'no_depreciation' : Asset.not_depreciation,
+                                          'origin': 'change'
                                           })
 
         return True
@@ -1088,6 +1089,11 @@ class AssetLine(models.Model):
         change_default=True,
         default=lambda self: self.env['res.company']._company_default_get())
     voucher_number = fields.Char(u'凭证ID')
+    
+    origin = fields.Selection(
+        string=u'Origin',
+        selection=[('change', 'Change'), ('depreciation', 'Depreciation')], default='depreciation'
+    )
 
 
 class CreateDepreciationWizard(models.TransientModel):

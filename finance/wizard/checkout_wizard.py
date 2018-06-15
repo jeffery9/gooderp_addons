@@ -48,10 +48,10 @@ class CheckoutWizard(models.TransientModel):
             ('period_id', '!=', self.period_id.id)
         ])
 
-        depreciations = self.env['asset.line'].search([('period_id', '!=', self.period_id.id)])
+        depreciations = self.env['asset.line'].search([('period_id', '=', self.period_id.id),('order_id', 'in', fixed_assets.ids), ('origin', '=', 'depreciation')])
 
-        if len(depreciations) != len(fixed_assets):
-            raise UserError( u'固定资产没有计提折旧！')
+        if len(depreciations) < len(fixed_assets):
+            return False
 
         depreciation_voucher = self.env['voucher.line'].search([('period_id', '=', self.period_id.id), ('name', '=',
                                                                                                         u'固定资产折旧')])

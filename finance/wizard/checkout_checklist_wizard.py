@@ -224,9 +224,9 @@ class CheckoutChecklist(models.TransientModel):
             ('period_id', '!=', self.period_id.id)
         ])
 
-        depreciations = self.env['asset.line'].search([('period_id', '!=', self.period_id.id)])
+        depreciations = self.env['asset.line'].search([('period_id', '=', self.period_id.id),('order_id', 'in', fixed_assets.ids), ('origin', '=', 'depreciation')])
 
-        if len(depreciations) != len(fixed_assets):
+        if len(depreciations) < len(fixed_assets):
             return False
 
         depreciation_voucher = self.env['voucher.line'].search([('period_id', '=', self.period_id.id), ('name', '=',

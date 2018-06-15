@@ -11,7 +11,7 @@
                     </header>
                     <group>
                         <group>
-                            <field name='period_id' />
+                            <field name='period_id' options="{'no_create': True, 'no_open': True, 'no_create_edit': True}"/>
                         </group>
                     </group>
                     <group string="检查风险">
