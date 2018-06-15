@@ -52,7 +52,7 @@
                     </group>
                     <footer>
                         <!-- <button string="关闭" special="cancel" class="oe_link" /> -->
-                        <button string="结账" special="cancel" class="oe_highlight" attrs="{ 'invisible': [('result','=','error')]  }"/>
+                        <button string="结账" name="close_period" type="object" class="oe_highlight" attrs="{ 'invisible': [('result','=','error')]  }"/>
                     </footer>
                 </form>
             </field>

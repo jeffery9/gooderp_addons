@@ -218,6 +218,9 @@ class CheckoutChecklist(models.TransientModel):
         if not self.period_id:
             return False
 
+        if self.period_id == self.period_id.get_init_period():
+            return True
+
         fixed_assets = self.env['asset'].search([
             ('no_depreciation', '=', False),  # 提折旧的
             ('state', '=', 'done'),  # 已确认
@@ -241,10 +244,17 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
         if not self.period_id:
             return False
+
+        if self.period_id == self.period_id.get_init_period():
+            return True
+
         last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
                     self.period_id)
         frist_day_this_period, last_day_this_period= self.env['finance.period'].get_period_month_date_range(self.period_id)
-        frist_day_last_period, last_day_last_period= self.env['finance.period'].get_period_month_date_range(last_period)
+        frist_day_last_period = frist_day_this_period
+        last_day_last_period = last_day_this_period
+        if last_period:
+            frist_day_last_period, last_day_last_period= self.env['finance.period'].get_period_month_date_range(last_period)
          
         need_create_exchange_voucher = False
         account_ids = self.env['finance.account'].search([('currency_id', '!=', self.env.user.company_id.currency_id.id),
@@ -269,6 +279,9 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
         if not self.period_id:
             return False
+
+        if self.period_id == self.period_id.get_init_period():
+            return True
 
         voucher = self.env['voucher'].search(
             [('is_checkout', '=', True), ('period_id', '=', self.period_id.id)], order="create_date desc", limit=1)
@@ -328,6 +341,9 @@ class CheckoutChecklist(models.TransientModel):
         if not self.period_id:
             return False
 
+        if self.period_id == self.period_id.get_init_period():
+            return True
+
         account_id = self.env['finance.account'].search([('code', '=', account_code)])
         child_account_ids = self.env['finance.account'].search([('id', 'child_of', account_id.id)])
         for child_account_id in child_account_ids:
@@ -343,6 +359,9 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
         if not self.period_id:
             return False
+
+        if self.period_id == self.period_id.get_init_period():
+            return True
 
         account_id = self.env['finance.account'].search([('code', '=', '1201')])
         trial_balance_item = self.env['trial.balance'].search([('subject_name_id', '=', account_id.id),
@@ -362,6 +381,9 @@ class CheckoutChecklist(models.TransientModel):
         if not self.period_id:
             return False
 
+        if self.period_id == self.period_id.get_init_period():
+            return True
+
         account_id = self.env['finance.account'].search([('code', '=', '1501')])
         trial_balance_item = self.env['trial.balance'].search([('subject_name_id', '=', account_id.id),
                                                                ('period_id', '=', self.period_id.id)])
@@ -379,6 +401,9 @@ class CheckoutChecklist(models.TransientModel):
         self.ensure_one()
         if not self.period_id:
             return False
+            
+        if self.period_id == self.period_id.get_init_period():
+            return True
 
         account_id = self.env['finance.account'].search([('code', '=', '1601')])
         child_account_ids = self.env['finance.account'].search([('id', 'child_of', account_id.id)])
