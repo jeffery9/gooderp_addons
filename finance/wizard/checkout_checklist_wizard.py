@@ -383,4 +383,24 @@ class CheckoutChecklist(models.TransientModel):
     def close_period(self):
         self.ensure_one()
 
+        # 关闭会计期间
+        last_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
+                    self.period_id)
         self.period_id.is_closed = True
+        self.env['dupont'].fill(self.period_id)
+        pre_period = last_period
+        while pre_period:
+            self.env['dupont'].fill(pre_period)
+            pre_period = self.env['create.trial.balance.wizard'].compute_last_period_id(
+                pre_period)
+        # 如果下一个会计期间没有，则创建。
+        next_period = self.env['create.trial.balance.wizard'].compute_next_period_id(
+            self.period_id)
+        if not next_period:
+            if self.period_id.month == '12':
+                self.env['finance.period'].create({'year': str(int(self.period_id.year) + 1),
+                                                   'month': '1', })
+            else:
+                self.env['finance.period'].create({'year': self.period_id.year,
+                                                   'month': str(int(self.period_id.month) + 1), })
+

@@ -51,15 +51,14 @@
                         <field name="result" />
                     </group>
                     <footer>
-                        <button string="关闭" special="cancel" class="oe_link" />
-
+                        <!-- <button string="关闭" special="cancel" class="oe_link" /> -->
                         <button string="结账" special="cancel" class="oe_highlight" attrs="{ 'invisible': [('result','=','error')]  }"/>
                     </footer>
                 </form>
             </field>
         </record>
         <record id="preiod_checklist_action" model="ir.actions.act_window">
-            <field name="name">期末结转</field>
+            <field name="name">结账</field>
             <field name="res_model">checkout.checklist</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>

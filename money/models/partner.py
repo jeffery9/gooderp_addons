@@ -151,8 +151,7 @@ class BankAccount(models.Model):
             other_money_init.other_money_done()
         else:
             other_money_id = self.env['other.money.order'].search([
-                ('bank_id', '=', self.id.with_context(modify_from_webclient=
-                                      True)),
+                ('bank_id', '=', self.id),
                 ('is_init', '=', True)])
             if other_money_id:
                 other_money_id.other_money_draft()
